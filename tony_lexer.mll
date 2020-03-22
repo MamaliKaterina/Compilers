@@ -11,6 +11,8 @@ type token =
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
+let empty = [' ' '\t' '\n' '\r']
+let escape_seq = ['\n' '\t' '\r' '\0' '\' '\''  '\x00']
 
 rule lexer = parse
 	  "and" 	{T_and}
@@ -42,8 +44,8 @@ rule lexer = parse
 
 	| letter [letter digit '_' '?']*	{T_var}
 	| digit+	{T_int_const}
-	| 	{T_char_const}
-	| 	{T_string_const}
+	| "'" [_] "'"	{T_char_const}	(*??? Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
+	| "\"" [^ '\n'] "\""	{T_string_const}	(*???*)
 
 	| '=' 	{T_eq}
 	| '+'	{T_plus}
@@ -64,6 +66,10 @@ rule lexer = parse
 	| ';'	{T_semicolon}
 	| ':'	{T_colon}
 	| ":="	{T_define}
+
+	| empty+ 	{lexer lexbuf}
+	| "%" [^ '\n']* "\n"	{lexer lexbuf}
+	|	{lexer lexbuf}	(*here we recognise and maybe count??? the lines of comments*)
 
 	| eof 	{T_eof}
 	|  _ as chr     { Printf.eprintf "invalid character: '%c' (ascii: %d)"
