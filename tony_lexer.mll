@@ -5,14 +5,14 @@ type token =
 	| T_int_const 
 	| T_char_const 
 	| T_string_const 
-	| T_eq | T_minus | T_plus | T_times | T_div | T_cons | T_dif | T_less | T_bigger | T_less_eq | T_bigger_eq 
-	| T_lbracket | T_rbracket | T_define | T_lsqbracket | T_rsqbracket | T_colon | T_semicolon
+	| T_eq | T_minus | T_plus | T_times | T_div | T_cons | T_dif | T_less | T_greater | T_less_eq | T_greater_eq 
+	| T_lbracket | T_rbracket | T_assign | T_lsqbracket | T_rsqbracket | T_colon | T_semicolon | T_comma
 }
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
 let empty = [' ' '\t' '\n' '\r']
-let escape_seq = ['\n' '\t' '\r' '\0' '\' '\''  '\x00']
+let escape_seq = ['\n' '\t' '\r' '\0' '\\' '\'' '\"' '\x00'-'\xff']	(* the last one is probably wrong *)
 
 rule lexer = parse
 	  "and" 	{T_and}
@@ -44,7 +44,7 @@ rule lexer = parse
 
 	| letter [letter digit '_' '?']*	{T_var}
 	| digit+	{T_int_const}
-	| "'" [_] "'"	{T_char_const}	(*??? Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
+	| "'" [^ '\\'] "'"	{T_char_const}	(*??? Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
 	| "\"" [^ '\n'] "\""	{T_string_const}	(*???*)
 
 	| '=' 	{T_eq}
@@ -55,9 +55,9 @@ rule lexer = parse
 	| '#'	{T_cons}
 	| "<>"	{T_dif}
 	| '<'	{T_less}
-	| '>'	{T_bigger}
+	| '>'	{T_greater}
 	| "<="	{T_less_eq}
-	| ">="	{T_bigger_eq}
+	| ">="	{T_greater_eq}
 
 	| '('	{T_lbracket}
 	| ')'	{T_rbracket}
@@ -65,14 +65,46 @@ rule lexer = parse
 	| ']'	{T_rsqbracket}
 	| ';'	{T_semicolon}
 	| ':'	{T_colon}
-	| ":="	{T_define}
+	| ','	{T_comma}
+	| ":="	{T_assign}
 
-	| empty+ 	{lexer lexbuf}
+	| empty+	{lexer lexbuf}
 	| "%" [^ '\n']* "\n"	{lexer lexbuf}
 	|	{lexer lexbuf}	(*here we recognise and maybe count??? the lines of comments*)
 
 	| eof 	{T_eof}
-	|  _ as chr     { Printf.eprintf "invalid character: '%c' (ascii: %d)"
-                      chr (Char.code chr);
-                    lexer lexbuf }
+	| _ as chr     { Printf.eprintf "invalid character: '%c' (ascii: %d)"
+				chr (Char.code chr);
+                    	 lexer lexbuf }
 
+(* all the following is just copied from minibasic lexer yet *)
+{
+  let string_of_token token =
+    match token with
+      | T_eof    -> "T_eof"
+      | T_const  -> "T_const"
+      | T_var    -> "T_var"
+      | T_print  -> "T_print"
+      | T_let    -> "T_let"
+      | T_for    -> "T_for"
+      | T_do     -> "T_do"
+      | T_begin  -> "T_begin"
+      | T_end    -> "T_end"
+      | T_if     -> "T_if"
+      | T_then   -> "T_then"
+      | T_eq     -> "T_eq"
+      | T_lparen -> "T_lparen"
+      | T_rparen -> "T_rparen"
+      | T_plus   -> "T_plus"
+      | T_minus  -> "T_minus"
+      | T_times  -> "T_times"
+
+  let main =
+    let lexbuf = Lexing.from_channel stdin in
+    let rec loop () =
+      let token = lexer lexbuf in
+      Printf.printf "token=%s, lexeme=\"%s\"\n"
+        (string_of_token token) (Lexing.lexeme lexbuf);
+      if token <> T_eof then loop () in
+    loop ()
+}
