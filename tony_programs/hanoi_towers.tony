@@ -3,12 +3,12 @@ def solve ():
   def hanoi (int rings; char[] source, target, auxiliary):
 
     def move (char[] source, target):
-      puts(”Moving from ”) puts(source)
+      puts("Moving from ") puts(source)
     end
 
-    puts(” to ”)
+    puts(" to ")
     puts(target)
-    puts(”.\n”)
+    puts(".\n")
 
     if rings >= 1:
       hanoi(rings-1, source, auxiliary, target)
@@ -19,7 +19,7 @@ end
 
 int NumberOfRings
 
-puts(”Rings: ”)
+puts("Rings: ")
 NumberOfRings := readInteger()
-hanoi(NumberOfRings, ”left”, ”right”, ”middle”)
+hanoi(NumberOfRings, "left", "right", "middle")
 end
