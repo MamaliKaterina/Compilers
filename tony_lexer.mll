@@ -44,8 +44,8 @@ rule lexer = parse
 
 	| letter (letter | digit | ['_' '?'])*	{T_var}
 	| digit+	{T_int_const}	(* what about 042, 0042, 00042? *)
-	| "'" (escape_seq | [^ '\\' '\'' '\"']) "'"	{T_char_const}	(*can't print non latin characters, Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
-	| "\"" [^ '\"']* "\""	{T_string_const}	(*wrong*)
+	| "'" (escape_seq | [^ '\\' '\'' '\"' '\n']) "'"	{T_char_const}	(*can't print non latin characters, Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
+	| "\"" (escape_seq | [^ '\\' '\'' '\"' '\n'])* "\""	{T_string_const}
 
 	| '=' 	{T_eq}
 	| '+'	{T_plus}
