@@ -1,18 +1,18 @@
 {
 type token =
 	| T_eof | T_and | T_bool | T_char | T_decl | T_def | T_else | T_elsif | T_end | T_exit | T_false | T_for | T_head | T_if | T_int | T_list | T_mod | T_new | T_nil | T_is_nil | T_not | T_or | T_ref | T_return | T_skip | T_tail | T_true
-	| T_var 
-	| T_int_const 
-	| T_char_const 
-	| T_string_const 
-	| T_eq | T_minus | T_plus | T_times | T_div | T_cons | T_dif | T_less | T_greater | T_less_eq | T_greater_eq 
+	| T_var
+	| T_int_const
+	| T_char_const
+	| T_string_const
+	| T_eq | T_minus | T_plus | T_times | T_div | T_cons | T_dif | T_less | T_greater | T_less_eq | T_greater_eq
 	| T_lbracket | T_rbracket | T_assign | T_lsqbracket | T_rsqbracket | T_colon | T_semicolon | T_comma
 }
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
 let empty = [' ' '\t' '\n' '\r']
-let escape_seq = ['\n' '\t' '\r' '\0' '\\' '\'' '\"' '\x00'-'\xff']	(* the last one is probably wrong *)
+let escape_seq = '\\' (['n' 't' 'r' '0' '\\' '\'' '\"'] | 'x'['0'-'9' 'a'-'f']['0'-'9' 'a'-'f'])
 
 rule lexer = parse
 	  "and" 	{T_and}
@@ -42,10 +42,10 @@ rule lexer = parse
 	| "tail"	{T_tail}
 	| "true"	{T_true}
 
-	| letter [letter digit '_' '?']*	{T_var}
-	| digit+	{T_int_const}
-	| "'" [^ '\\' '\'' '\"']+ "'"	{T_char_const}	(*??? Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
-	| "\"" ([^ '\"'] | \\_)* "\""	{T_string_const}	(*???*)
+	| letter (letter | digit | ['_' '?'])*	{T_var}
+	| digit+	{T_int_const}	(* what about 042, 0042, 00042? *)
+	| "'" (escape_seq | [^ '\\' '\'' '\"']) "'"	{T_char_const}	(*can't print non latin characters, Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
+	| "\"" [^ '\"']* "\""	{T_string_const}	(*wrong*)
 
 	| '=' 	{T_eq}
 	| '+'	{T_plus}
@@ -70,10 +70,10 @@ rule lexer = parse
 
 	| empty+	{lexer lexbuf}
 	| "%" [^ '\n']* "\n"	{lexer lexbuf}
-	| "<*" ([^ '*']+ | '\*'+ [^*>])* '\*'+ "*>"	{lexer lexbuf}	(*wrong, here we recognise and maybe count??? the lines of comments*)
+	(*|	{lexer lexbuf}	(*here we recognise and maybe count??? the lines of comments, nested comments probably impossible to be recognized by regular expression, need states*) *)
 
 	| eof	{T_eof}
-	| _ as chr	{ Printf.eprintf "invalid character: '%c' (ascii: %d)"
+	| _ as chr	{ Printf.eprintf "invalid character: '%c' (ascii: %d)\n"
 					chr (Char.code chr);
 				  lexer lexbuf }
 
