@@ -1,6 +1,6 @@
 {
 type token =
-	| T_eof | T_and | T_bool | T_char | T_decl | T_def | T_else | T_elsif | T_end | T_exit | T_false | T_for | T_head | T_if | T_int | T_list | T_mod | T_new | T_nil | T_nil? | T_not | T_or | T_ref | T_return | T_skip | T_tail | T_true
+	| T_eof | T_and | T_bool | T_char | T_decl | T_def | T_else | T_elsif | T_end | T_exit | T_false | T_for | T_head | T_if | T_int | T_list | T_mod | T_new | T_nil | T_is_nil | T_not | T_or | T_ref | T_return | T_skip | T_tail | T_true
 	| T_var 
 	| T_int_const 
 	| T_char_const 
@@ -33,7 +33,7 @@ rule lexer = parse
 	| "mod"		{T_mod}
 	| "new"		{T_new}
 	| "nil"		{T_nil}
-	| "nil?"	{T_nil?}
+	| "is_nil"	{T_is_nil}
 	| "not"		{T_not}
 	| "or"		{T_or}
 	| "ref"		{T_ref}
@@ -77,7 +77,6 @@ rule lexer = parse
 					chr (Char.code chr);
 				  lexer lexbuf }
 
-(* all the following is just copied from minibasic lexer yet *)
 {
 let string_of_token token =
   match token with
@@ -100,7 +99,7 @@ let string_of_token token =
 	| T_mod		-> "T_mod"
 	| T_new		-> "T_new"
 	| T_nil		-> "T_nil"
-	| T_nil?	-> "T_nil?"
+	| T_is_nil	-> "T_is_nil"
 	| T_not		-> "T_not"
 	| T_or		-> "T_or"
 	| T_ref		-> "T_ref"
