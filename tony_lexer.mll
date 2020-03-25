@@ -44,8 +44,8 @@ rule lexer = parse
 
 	| letter [letter digit '_' '?']*	{T_var}
 	| digit+	{T_int_const}
-	| "'" [^ '\\'] "'"	{T_char_const}	(*??? Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
-	| "\"" [^ '\n'] "\""	{T_string_const}	(*???*)
+	| "'" [^ '\\' '\'' '\"']+ "'"	{T_char_const}	(*??? Maybe we could return the ascii code of the character read, say: "'" [_] as id "'" {id}??? *)
+	| "\"" ([^ '\"'] | \\_)* "\""	{T_string_const}	(*???*)
 
 	| '=' 	{T_eq}
 	| '+'	{T_plus}
@@ -70,41 +70,73 @@ rule lexer = parse
 
 	| empty+	{lexer lexbuf}
 	| "%" [^ '\n']* "\n"	{lexer lexbuf}
-	|	{lexer lexbuf}	(*here we recognise and maybe count??? the lines of comments*)
+	| "<*" ([^ '*']+ | '\*'+ [^*>])* '\*'+ "*>"	{lexer lexbuf}	(*wrong, here we recognise and maybe count??? the lines of comments*)
 
-	| eof 	{T_eof}
-	| _ as chr     { Printf.eprintf "invalid character: '%c' (ascii: %d)"
-				chr (Char.code chr);
-                    	 lexer lexbuf }
+	| eof	{T_eof}
+	| _ as chr	{ Printf.eprintf "invalid character: '%c' (ascii: %d)"
+					chr (Char.code chr);
+				  lexer lexbuf }
 
 (* all the following is just copied from minibasic lexer yet *)
 {
-  let string_of_token token =
-    match token with
-      | T_eof    -> "T_eof"
-      | T_const  -> "T_const"
-      | T_var    -> "T_var"
-      | T_print  -> "T_print"
-      | T_let    -> "T_let"
-      | T_for    -> "T_for"
-      | T_do     -> "T_do"
-      | T_begin  -> "T_begin"
-      | T_end    -> "T_end"
-      | T_if     -> "T_if"
-      | T_then   -> "T_then"
-      | T_eq     -> "T_eq"
-      | T_lparen -> "T_lparen"
-      | T_rparen -> "T_rparen"
-      | T_plus   -> "T_plus"
-      | T_minus  -> "T_minus"
-      | T_times  -> "T_times"
+let string_of_token token =
+  match token with
+	| T_eof		-> "T_eof"
+	| T_and		-> "T_and"
+	| T_bool	-> "T_bool"
+	| T_char	-> "T_char"
+	| T_decl	-> "T_decl"
+	| T_def		-> "T_def"
+	| T_else	-> "T_else"
+	| T_elsif	-> "T_elsif"
+	| T_end		-> "T_end"
+	| T_exit	-> "T_exit"
+	| T_false	-> "T_false"
+	| T_for		-> "T_for"
+	| T_head	-> "T_head"
+	| T_if		-> "T_if"
+	| T_int		-> "T_int"
+	| T_list	-> "T_list"
+	| T_mod		-> "T_mod"
+	| T_new		-> "T_new"
+	| T_nil		-> "T_nil"
+	| T_nil?	-> "T_nil?"
+	| T_not		-> "T_not"
+	| T_or		-> "T_or"
+	| T_ref		-> "T_ref"
+	| T_return	-> "T_return"
+	| T_skip	-> "T_skip"
+	| T_tail	-> "T_tail"
+	| T_true	-> "T_true"
+	| T_var		-> "T_var"
+	| T_int_const	-> "T_int_const"
+	| T_char_const	-> "T_char_const"
+	| T_string_const	-> "T_string_const"
+	| T_eq		-> "T_eq"
+	| T_plus	-> "T_plus"
+	| T_minus	-> "T_minus"
+	| T_times	-> "T_times"
+	| T_div		-> "T_div"
+	| T_cons	-> "T_cons"
+	| T_dif		-> "T_dif"
+	| T_less	-> "T_less"
+	| T_greater	-> "T_greater"
+	| T_less_eq	-> "T_less_eq"
+	| T_greater_eq	-> "T_greater_eq"
+	| T_lbracket	-> "T_lbracket"
+	| T_rbracket	-> "T_rbracket"
+	| T_lsqbracket	-> "T_lsqbracket"
+	| T_rsqbracket	-> "T_rsqbracket"
+	| T_assign	-> "T_assign"
+	| T_colon	-> "T_colon"
+	| T_semicolon	-> "T_semicolon"
+	| T_comma	-> "T_comma"
 
-  let main =
-    let lexbuf = Lexing.from_channel stdin in
-    let rec loop () =
-      let token = lexer lexbuf in
-      Printf.printf "token=%s, lexeme=\"%s\"\n"
-        (string_of_token token) (Lexing.lexeme lexbuf);
-      if token <> T_eof then loop () in
-    loop ()
+let main =
+	let lexbuf = Lexing.from_channel stdin in
+	let rec loop () =
+		let token = lexer lexbuf in
+		Printf.printf "token=%s, lexeme=\"%s\"\n" (string_of_token token) (Lexing.lexeme lexbuf);
+		if token <> T_eof then loop () in
+	loop ()
 }
