@@ -7,12 +7,17 @@ type token =
 	| T_string_const
 	| T_eq | T_minus | T_plus | T_times | T_div | T_cons | T_dif | T_less | T_greater | T_less_eq | T_greater_eq
 	| T_lbracket | T_rbracket | T_assign | T_lsqbracket | T_rsqbracket | T_colon | T_semicolon | T_comma
+
+let lines = ref 0
+
 }
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
 let empty = [' ' '\t' '\n' '\r']
 let escape_seq = '\\' (['n' 't' 'r' '0' '\\' '\'' '\"'] | 'x'['0'-'9' 'a'-'f']['0'-'9' 'a'-'f'])
+let non_comment_phrase = ([^ '*' '<'] | '*' [^ '>'] | '<' [^ '*'])*
+let valid_comment = "<*" non_comment_phrase "*>"
 
 rule lexer = parse
 	  "and" 	{T_and}
@@ -70,9 +75,13 @@ rule lexer = parse
 
 	| empty+	{lexer lexbuf}
 	| "%" [^ '\n']* "\n"	{lexer lexbuf}
+	| "<*" non_comment_phrase valid_comment* non_comment_phrase "*>" {lexer lexbuf} (*creates error, not the one i would want, meaning i dont understand the problem is *)
 	(*|	{lexer lexbuf}	(*here we recognise and maybe count??? the lines of comments, nested comments probably impossible to be recognized by regular expression, need states*) *)
 
 	| eof	{T_eof}
+	| "*>" | "<*"	{ Printf.eprintf "unbalanced comments\n";
+				  lexer lexbuf } (*partly corrects the above problem*)
+
 	| _ as chr	{ Printf.eprintf "invalid character: '%c' (ascii: %d)\n"
 					chr (Char.code chr);
 				  lexer lexbuf }
