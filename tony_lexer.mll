@@ -6,9 +6,8 @@ type token =
 	| T_char_const
 	| T_string_const
 	| T_eq | T_minus | T_plus | T_times | T_div | T_cons | T_dif | T_less | T_greater | T_less_eq | T_greater_eq
-	| T_lbracket | T_rbracket | T_assign | T_lsqbracket | T_rsqbracket | T_colon | T_semicolon | T_comma
+	| T_lbracket | T_rbracket | T_assign | T_lsqbracket | T_rsqbracket | T_colon | T_semicolon | T_comma | T_first_com | T_last_com
 
-let lines = ref 0
 
 }
 
@@ -17,7 +16,14 @@ let letter = ['a'-'z' 'A'-'Z']
 let empty = [' ' '\t' '\n' '\r']
 let escape_seq = '\\' (['n' 't' 'r' '0' '\\' '\'' '\"'] | 'x'['0'-'9' 'a'-'f']['0'-'9' 'a'-'f'])
 let non_comment_phrase = ([^ '*' '<'] | '*' [^ '>'] | '<' [^ '*'])*
+(*let first_part_of_comment = "<*" ([^ '<'] | '<' [^ '*'])*
+let last_part_of_comment = ([^ '*'] | '*' [^ '>'])* "*>"
+let valid_comment = "<*" (non_comment_phrase | first_part_of_comment | last_part_of_comment)* "*>"*)
+
+let first_part_of_comment = "<*" non_comment_phrase
+let last_part_of_comment = non_comment_phrase "*>"
 let valid_comment = "<*" non_comment_phrase "*>"
+
 
 rule lexer = parse
 	  "and" 	{T_and}
@@ -75,12 +81,12 @@ rule lexer = parse
 
 	| empty+	{lexer lexbuf}
 	| "%" [^ '\n']* "\n"	{lexer lexbuf}
-	| "<*" non_comment_phrase valid_comment* non_comment_phrase "*>" {lexer lexbuf} (*creates error, not the one i would want, meaning i dont understand the problem is *)
+	| valid_comment {lexer lexbuf} 
+	| first_part_of_comment {T_first_com} (*use these in grammar to check balance*) 
+	| last_part_of_comment {T_last_com}   (*and if valid ignore them*)
 	(*|	{lexer lexbuf}	(*here we recognise and maybe count??? the lines of comments, nested comments probably impossible to be recognized by regular expression, need states*) *)
 
 	| eof	{T_eof}
-	| "*>" | "<*"	{ Printf.eprintf "unbalanced comments\n";
-				  lexer lexbuf } (*partly corrects the above problem*)
 
 	| _ as chr	{ Printf.eprintf "invalid character: '%c' (ascii: %d)\n"
 					chr (Char.code chr);
@@ -139,6 +145,8 @@ let string_of_token token =
 	| T_colon	-> "T_colon"
 	| T_semicolon	-> "T_semicolon"
 	| T_comma	-> "T_comma"
+	| T_first_com -> "opening comment"
+	| T_last_com -> "closing comment"
 
 let main =
 	let lexbuf = Lexing.from_channel stdin in
