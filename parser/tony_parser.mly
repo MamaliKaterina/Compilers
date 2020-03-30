@@ -50,17 +50,17 @@
 %token T_comma
 
 
-%left T_right
+%left T_or
 %left T_and
 %nonassoc NT_not
-%nonaassoc T_eq T_dif T_less T_greater T_less_eq T_greater_eq
+%nonassoc T_eq T_dif T_less T_greater T_less_eq T_greater_eq
 %right T_cons
 %left T_plus T_minus
 %left T_times T_div T_mod
 %nonassoc NT_plus NT_minus
 
 
-/*not all these have to be declared here, we put them at first to remember nonterminals*/
+(*not all these have to be declared here, we put them at first to remember nonterminals*)
 
 %start program func-def header func-decl var-def stmt type id formal simple expr simple-list atom call string-literal int-const char-const
 
@@ -142,7 +142,7 @@ expr : atom	{()}
 	| expr T_or expr	{()}
 	| T_new type T_lsqbracket expr T_rsqbracket	{()}
 	| T_nil	{()}
-	| T_nil? T_lbracket expr T_rbracket	{()}
+	| T_is_nil T_lbracket expr T_rbracket	{()}
 	| expr T_cons expr	{()}
 	| T_head T_lbracket expr T_rbracket	{()}
 	| T_tail T_lbracket expr T_rbracket	{()}
@@ -151,9 +151,3 @@ oper : T_plus {()} | T_minus {()} | T_times {()} | T_div {()} | T_mod {()}
 ; 
 lg_oper : T_eq {()} | T_dif {()} | T_less {()} | T_greater {()} | T_less_eq {()} | T_graeter_eq {()}
 ;
-
-/*My rule for comment handling. Do nothing if balanced.*/
-comment : T_first_com comment T_last_com	{()}
-		| /*nothing*/	{()}
-; 
-
