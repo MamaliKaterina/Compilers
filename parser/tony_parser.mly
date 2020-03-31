@@ -52,7 +52,7 @@
 
 %left T_or
 %left T_and
-%nonassoc NT_not
+%nonassoc T_not
 %nonassoc T_eq T_dif T_less T_greater T_less_eq T_greater_eq
 %right T_cons
 %left T_plus T_minus
@@ -60,94 +60,125 @@
 %nonassoc NT_plus NT_minus
 
 
-(*not all these have to be declared here, we put them at first to remember nonterminals*)
+/*not all these have to be declared here, we put them at first to remember nonterminals*/
 
-%start program func-def header func-decl var-def stmt type id formal simple expr simple-list atom call string-literal int-const char-const
+%start program /*func-def header func-decl var-def stmt type id formal simple expr simple-list atom call string-literal int-const char-const*/
 
-%type<> program 
-%type<> func-def
-%type<> header
-%type<> func-decl
-%type<> var-def
-%type<> stmt
-%type<> type
-%type<> id
-%type<> formal
-%type<> simple
-%type<> expr
-%type<> simple-list
-%type<> atom
-%type<> call
-%type<> string-literal
-%type<> int-const
-%type<> char-const 
+%type <> program 
+/*%type <> func-def
+%type <> header
+%type <> func-decl
+%type <> var-def
+%type <> stmt
+%type <> type
+%type <> id
+%type <> formal
+%type <> simple
+%type <> expr
+%type <> simple-list
+%type <> atom
+%type <> call
+%type <> string-literal
+%type <> int-const
+%type <> char-const*/
 
 %%
-program	: func_def 	{()}
-;
 
-func_def : T_def header T_colon def* stmt+ T_end 	{()}
-;
-def* : /*nothing*/ 	{()}
-	| func-def def*	{()}
-	| func-decl def*	{()}
-	| var-def def*	{()}
-;
-stmt+ : stmt	{()}
-	| stmt stmt+	{()}
-;
+program	: func_def 	{()}
+
+func_def : T_def header T_colon def multi_stmt T_end 	{()}
+
+def : /*nothing*/ 	{()}
+	 | func_def def	{()}
+	 | func_decl def	{()}
+	 | var_def def	{()}
+
+multi_stmt : stmt	{()}
+		   | stmt multi_stmt	{()}
 
 header : mytype id T_lbracket myformal T_rbracket	{()}
-;
-mytype : /*nothing*/ 	{()}
-	| type	{()}
-;
-myformal : /*nothing*/	{()}
-		| formal repformal	{()}
-;
-repformal : /*nothing*/	{()}
-		| T_semicolon formal repformal	{()}
-;
 
-formal : myref type id other-id	{()}
-;
+mytype : /*nothing*/ 	{()}
+	   | type	{()}
+
+myformal : /*nothing*/	{()}
+		 | formal repformal	{()}
+
+repformal : /*nothing*/	{()}
+		  | T_semicolon formal repformal	{()}
+
+formal : myref type id other_id	{()}
+
 myref : /*nothing*/	{()}
-	| ref	{()}
-;
-other-id : /*nothing*/	{()}
-		| T_comma id other-id	{()}
-;
+	  | T_ref	{()}
+
+other_id : /*nothing*/	{()}
+		 | T_comma id other_id	{()}
 
 type : T_int	{()}
-	| T_bool	{()}
-	| T_char	{()}
-	| type T_lsqbracket Trsqbracket	{()}
-	| T_list T_lsqbracket type Trsqbracket	{()}
-;
+	 | T_bool	{()}
+	 | T_char	{()}
+	 | type T_lsqbracket T_rsqbracket	{()}
+	 | T_list T_lsqbracket type T_rsqbracket	{()}
 
-(*...*)
+func_decl : T_decl header	{()}
+
+var_def : type other_id	{()}
+
+stmt : simple	{()}
+	 | T_exit	{()}
+	 | T_return expr	{()}
+	 | T_if expr T_colon multi_stmt elsif_stmt else_stmt T_end	{()}
+	 | T_for simple_list T_semicolon expr T_semicolon simple_list T_colon multi_stmt T_end	{()}
+
+elsif_stmt : /*nothing*/	{()}
+		  | T_elsif expr T_colon multi_stmt elsif_stmt	{()}
+
+else_stmt : /*nothing*/	{()}
+		  | T_else T_colon multi_stmt	{()}
+
+simple : T_skip	{()}
+	   | atom T_assign expr	{()}
+	   | call	{()}
+
+simple_list : simple other_simple	{()}
+
+other_simple : /*nothing*/	{()}
+			 | T_comma simple other_simple	{()}
+
+call : id T_lbracket T_rbracket	{()}
+	 | id T_lbracket expr other_expr T_rbracket	{()}
+
+other_expr : /*nothing*/	{()}
+		   | T_comma expr other_expr	{()}
+
+atom : id	{()}
+	 | T_string_const	{()}
+	 | atom T_lsqbracket expr T_rsqbracket	{()}
+	 | call	{()}
 
 expr : atom	{()}
-	| int-const	{()}
-	| char-const	{()}
-	| T_lbracket expr T_rbracket	{()}
-	| T_plus expr %prec NT_plus	{()}
-	| T_minus expr %prec NT_minus	{()}
-	| expr oper expr	{()}
-	| expr lg_oper expr {()}
-	| T_true	{()}
-	| T_false	{()}
-	| T_not expr %prec NT_not	{()}
-	| expr T_and expr	{()}
-	| expr T_or expr	{()}
-	| T_new type T_lsqbracket expr T_rsqbracket	{()}
-	| T_nil	{()}
-	| T_is_nil T_lbracket expr T_rbracket	{()}
-	| expr T_cons expr	{()}
-	| T_head T_lbracket expr T_rbracket	{()}
-	| T_tail T_lbracket expr T_rbracket	{()}
-;
+	 | T_int_const	{()}
+	 | T_char_const	{()}
+	 | T_lbracket expr T_rbracket	{()}
+	 | T_plus expr %prec NT_plus	{()}
+	 | T_minus expr %prec NT_minus	{()}
+	 | expr oper expr	{()}
+	 | expr lg_oper expr {()}
+	 | T_true	{()}
+	 | T_false	{()}
+	 | T_not expr	{()}
+	 | expr T_and expr	{()}
+	 | expr T_or expr	{()}
+	 | T_new type T_lsqbracket expr T_rsqbracket	{()}
+	 | T_nil	{()}
+	 | T_is_nil T_lbracket expr T_rbracket	{()}
+	 | expr T_cons expr	{()}
+	 | T_head T_lbracket expr T_rbracket	{()}
+	 | T_tail T_lbracket expr T_rbracket	{()}
+
 oper : T_plus {()} | T_minus {()} | T_times {()} | T_div {()} | T_mod {()}
-; 
-lg_oper : T_eq {()} | T_dif {()} | T_less {()} | T_greater {()} | T_less_eq {()} | T_graeter_eq {()}
-;
+ 
+lg_oper : T_eq {()} | T_dif {()} | T_less {()} | T_greater {()} | T_less_eq {()} | T_greater_eq {()}
+
+id : T_var {()}
