@@ -1,6 +1,6 @@
 # 1 "tony_lexer.mll"
  
-open Tony_parser.mli
+open Tony_parser
 
 # 6 "tony_lexer.ml"
 let __ocaml_lex_tables = {

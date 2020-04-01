@@ -1,5 +1,5 @@
 {
-open tony_parser
+open Tony_parser
 }
 
 let digit = ['0'-'9']

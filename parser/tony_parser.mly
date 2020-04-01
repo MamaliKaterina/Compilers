@@ -62,7 +62,7 @@
 
 /*not all these have to be declared here, we put them at first to remember nonterminals*/
 
-%start program /*func-def header func-decl var-def stmt type id formal simple expr simple-list atom call string-literal int-const char-const*/
+%start program /*func-def header func-decl var-def stmt ttype id formal simple expr simple-list atom call string-literal int-const char-const*/
 
 %type <> program 
 /*%type <> func-def
@@ -70,7 +70,7 @@
 %type <> func-decl
 %type <> var-def
 %type <> stmt
-%type <> type
+%type <> ttype
 %type <> id
 %type <> formal
 %type <> simple
@@ -84,7 +84,7 @@
 
 %%
 
-program	: func_def 	{()}
+program	: func_def T_eof	{()}
 
 func_def : T_def header T_colon def multi_stmt T_end 	{()}
 
@@ -99,7 +99,7 @@ multi_stmt : stmt	{()}
 header : mytype id T_lbracket myformal T_rbracket	{()}
 
 mytype : /*nothing*/ 	{()}
-	   | type	{()}
+	   | ttype	{()}
 
 myformal : /*nothing*/	{()}
 		 | formal repformal	{()}
@@ -107,7 +107,7 @@ myformal : /*nothing*/	{()}
 repformal : /*nothing*/	{()}
 		  | T_semicolon formal repformal	{()}
 
-formal : myref type id other_id	{()}
+formal : myref ttype id other_id	{()}
 
 myref : /*nothing*/	{()}
 	  | T_ref	{()}
@@ -115,15 +115,15 @@ myref : /*nothing*/	{()}
 other_id : /*nothing*/	{()}
 		 | T_comma id other_id	{()}
 
-type : T_int	{()}
+ttype : T_int	{()}
 	 | T_bool	{()}
 	 | T_char	{()}
-	 | type T_lsqbracket T_rsqbracket	{()}
-	 | T_list T_lsqbracket type T_rsqbracket	{()}
+	 | ttype T_lsqbracket T_rsqbracket	{()}
+	 | T_list T_lsqbracket ttype T_rsqbracket	{()}
 
 func_decl : T_decl header	{()}
 
-var_def : type other_id	{()}
+var_def : ttype other_id	{()}
 
 stmt : simple	{()}
 	 | T_exit	{()}
@@ -170,7 +170,7 @@ expr : atom	{()}
 	 | T_not expr	{()}
 	 | expr T_and expr	{()}
 	 | expr T_or expr	{()}
-	 | T_new type T_lsqbracket expr T_rsqbracket	{()}
+	 | T_new ttype T_lsqbracket expr T_rsqbracket	{()}
 	 | T_nil	{()}
 	 | T_is_nil T_lbracket expr T_rbracket	{()}
 	 | expr T_cons expr	{()}
