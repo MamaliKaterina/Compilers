@@ -3,5 +3,5 @@ def <* bdhskfd *> hello ():
 <* 00\\ <* &nkfjks *>  "" *>
 bxn ? ``  
 *>
-puts("Hello world!\n")
+puts('Hello world!\n')
 end

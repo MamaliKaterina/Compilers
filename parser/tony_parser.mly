@@ -64,7 +64,7 @@
 
 %start program /*func-def header func-decl var-def stmt ttype id formal simple expr simple-list atom call string-literal int-const char-const*/
 
-%type <> program 
+%type <unit> program 
 /*%type <> func-def
 %type <> header
 %type <> func-decl
@@ -123,7 +123,7 @@ ttype : T_int	{()}
 
 func_decl : T_decl header	{()}
 
-var_def : ttype other_id	{()}
+var_def : ttype id other_id	{()}
 
 stmt : simple	{()}
 	 | T_exit	{()}

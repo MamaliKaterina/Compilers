@@ -51,4 +51,4 @@ type token =
   | T_comma
 
 val program :
-  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> 
+  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> unit
