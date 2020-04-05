@@ -49,7 +49,6 @@
 %token T_semicolon 
 %token T_comma
 
-
 %left T_or
 %left T_and
 %nonassoc T_not

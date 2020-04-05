@@ -4,7 +4,7 @@ open Tony_parser
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
-let empty = [' ' '\t' '\n' '\r']
+let empty = [' ' '\t' '\r']
 let escape_seq = '\\' (['n' 't' 'r' '0' '\\' '\'' '\"'] | 'x'['0'-'9' 'a'-'f']['0'-'9' 'a'-'f'])
 
 rule lexer = parse
@@ -62,6 +62,7 @@ rule lexer = parse
 	| ','	{T_comma}
 	| ":="	{T_assign}
 
+	| '\n'	{Lexing.new_line lexbuf; lexer lexbuf}
 	| empty+	{lexer lexbuf}
 	| "%" [^ '\n']* "\n"	{lexer lexbuf}
 
@@ -69,11 +70,12 @@ rule lexer = parse
 
 	| _ as chr	{ Printf.eprintf "invalid character: '%c' (ascii: %d)\n"
 					chr (Char.code chr);
-				  lexer lexbuf }
+				  lexer lexbuf}
 
 
 and comments level = parse
 	| "*>"	{ if level = 0 then lexer lexbuf else comments (level-1) lexbuf }
 	| "<*"	{ comments (level+1) lexbuf }
-	| _		{ comments level lexbuf }
+	| '\n'	{ Lexing.new_line lexbuf; comments level lexbuf }
+	| _ 	{ comments level lexbuf }
 	| eof	{ print_endline "comments are not closed"; T_eof }

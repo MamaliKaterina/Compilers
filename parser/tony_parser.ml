@@ -514,7 +514,7 @@ let yyact = [|
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'func_def) in
     Obj.repr(
-# 87 "tony_parser.mly"
+# 86 "tony_parser.mly"
                          (())
 # 520 "tony_parser.ml"
                : unit))
@@ -523,13 +523,13 @@ let yyact = [|
     let _4 = (Parsing.peek_val __caml_parser_env 2 : 'def) in
     let _5 = (Parsing.peek_val __caml_parser_env 1 : 'multi_stmt) in
     Obj.repr(
-# 89 "tony_parser.mly"
+# 88 "tony_parser.mly"
                                                       (())
 # 529 "tony_parser.ml"
                : 'func_def))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 91 "tony_parser.mly"
+# 90 "tony_parser.mly"
                    (())
 # 535 "tony_parser.ml"
                : 'def))
@@ -537,7 +537,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'func_def) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'def) in
     Obj.repr(
-# 92 "tony_parser.mly"
+# 91 "tony_parser.mly"
                  (())
 # 543 "tony_parser.ml"
                : 'def))
@@ -545,7 +545,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'func_decl) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'def) in
     Obj.repr(
-# 93 "tony_parser.mly"
+# 92 "tony_parser.mly"
                   (())
 # 551 "tony_parser.ml"
                : 'def))
@@ -553,14 +553,14 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'var_def) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'def) in
     Obj.repr(
-# 94 "tony_parser.mly"
+# 93 "tony_parser.mly"
                 (())
 # 559 "tony_parser.ml"
                : 'def))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'stmt) in
     Obj.repr(
-# 96 "tony_parser.mly"
+# 95 "tony_parser.mly"
                   (())
 # 566 "tony_parser.ml"
                : 'multi_stmt))
@@ -568,7 +568,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'stmt) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'multi_stmt) in
     Obj.repr(
-# 97 "tony_parser.mly"
+# 96 "tony_parser.mly"
                        (())
 # 574 "tony_parser.ml"
                : 'multi_stmt))
@@ -577,26 +577,26 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 3 : 'id) in
     let _4 = (Parsing.peek_val __caml_parser_env 1 : 'myformal) in
     Obj.repr(
-# 99 "tony_parser.mly"
+# 98 "tony_parser.mly"
                                                   (())
 # 583 "tony_parser.ml"
                : 'header))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 101 "tony_parser.mly"
+# 100 "tony_parser.mly"
                       (())
 # 589 "tony_parser.ml"
                : 'mytype))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'ttype) in
     Obj.repr(
-# 102 "tony_parser.mly"
+# 101 "tony_parser.mly"
             (())
 # 596 "tony_parser.ml"
                : 'mytype))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 104 "tony_parser.mly"
+# 103 "tony_parser.mly"
                        (())
 # 602 "tony_parser.ml"
                : 'myformal))
@@ -604,13 +604,13 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'formal) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'repformal) in
     Obj.repr(
-# 105 "tony_parser.mly"
+# 104 "tony_parser.mly"
                       (())
 # 610 "tony_parser.ml"
                : 'myformal))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 107 "tony_parser.mly"
+# 106 "tony_parser.mly"
                         (())
 # 616 "tony_parser.ml"
                : 'repformal))
@@ -618,7 +618,7 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'formal) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'repformal) in
     Obj.repr(
-# 108 "tony_parser.mly"
+# 107 "tony_parser.mly"
                                    (())
 # 624 "tony_parser.ml"
                : 'repformal))
@@ -628,25 +628,25 @@ let yyact = [|
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'id) in
     let _4 = (Parsing.peek_val __caml_parser_env 0 : 'other_id) in
     Obj.repr(
-# 110 "tony_parser.mly"
+# 109 "tony_parser.mly"
                                  (())
 # 634 "tony_parser.ml"
                : 'formal))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 112 "tony_parser.mly"
+# 111 "tony_parser.mly"
                     (())
 # 640 "tony_parser.ml"
                : 'myref))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 113 "tony_parser.mly"
+# 112 "tony_parser.mly"
            (())
 # 646 "tony_parser.ml"
                : 'myref))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 115 "tony_parser.mly"
+# 114 "tony_parser.mly"
                        (())
 # 652 "tony_parser.ml"
                : 'other_id))
@@ -654,46 +654,46 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'id) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'other_id) in
     Obj.repr(
-# 116 "tony_parser.mly"
+# 115 "tony_parser.mly"
                          (())
 # 660 "tony_parser.ml"
                : 'other_id))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 118 "tony_parser.mly"
+# 117 "tony_parser.mly"
               (())
 # 666 "tony_parser.ml"
                : 'ttype))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 119 "tony_parser.mly"
+# 118 "tony_parser.mly"
            (())
 # 672 "tony_parser.ml"
                : 'ttype))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 120 "tony_parser.mly"
+# 119 "tony_parser.mly"
            (())
 # 678 "tony_parser.ml"
                : 'ttype))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'ttype) in
     Obj.repr(
-# 121 "tony_parser.mly"
+# 120 "tony_parser.mly"
                                     (())
 # 685 "tony_parser.ml"
                : 'ttype))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'ttype) in
     Obj.repr(
-# 122 "tony_parser.mly"
+# 121 "tony_parser.mly"
                                            (())
 # 692 "tony_parser.ml"
                : 'ttype))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'header) in
     Obj.repr(
-# 124 "tony_parser.mly"
+# 123 "tony_parser.mly"
                           (())
 # 699 "tony_parser.ml"
                : 'func_decl))
@@ -702,27 +702,27 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'id) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'other_id) in
     Obj.repr(
-# 126 "tony_parser.mly"
+# 125 "tony_parser.mly"
                             (())
 # 708 "tony_parser.ml"
                : 'var_def))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'simple) in
     Obj.repr(
-# 128 "tony_parser.mly"
+# 127 "tony_parser.mly"
               (())
 # 715 "tony_parser.ml"
                : 'stmt))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 129 "tony_parser.mly"
+# 128 "tony_parser.mly"
            (())
 # 721 "tony_parser.ml"
                : 'stmt))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 130 "tony_parser.mly"
+# 129 "tony_parser.mly"
                   (())
 # 728 "tony_parser.ml"
                : 'stmt))
@@ -732,7 +732,7 @@ let yyact = [|
     let _5 = (Parsing.peek_val __caml_parser_env 2 : 'elsif_stmt) in
     let _6 = (Parsing.peek_val __caml_parser_env 1 : 'else_stmt) in
     Obj.repr(
-# 131 "tony_parser.mly"
+# 130 "tony_parser.mly"
                                                             (())
 # 738 "tony_parser.ml"
                : 'stmt))
@@ -742,13 +742,13 @@ let yyact = [|
     let _6 = (Parsing.peek_val __caml_parser_env 3 : 'simple_list) in
     let _8 = (Parsing.peek_val __caml_parser_env 1 : 'multi_stmt) in
     Obj.repr(
-# 132 "tony_parser.mly"
+# 131 "tony_parser.mly"
                                                                                         (())
 # 748 "tony_parser.ml"
                : 'stmt))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 134 "tony_parser.mly"
+# 133 "tony_parser.mly"
                          (())
 # 754 "tony_parser.ml"
                : 'elsif_stmt))
@@ -757,26 +757,26 @@ let yyact = [|
     let _4 = (Parsing.peek_val __caml_parser_env 1 : 'multi_stmt) in
     let _5 = (Parsing.peek_val __caml_parser_env 0 : 'elsif_stmt) in
     Obj.repr(
-# 135 "tony_parser.mly"
+# 134 "tony_parser.mly"
                                                  (())
 # 763 "tony_parser.ml"
                : 'elsif_stmt))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 137 "tony_parser.mly"
+# 136 "tony_parser.mly"
                         (())
 # 769 "tony_parser.ml"
                : 'else_stmt))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'multi_stmt) in
     Obj.repr(
-# 138 "tony_parser.mly"
+# 137 "tony_parser.mly"
                                 (())
 # 776 "tony_parser.ml"
                : 'else_stmt))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 140 "tony_parser.mly"
+# 139 "tony_parser.mly"
                 (())
 # 782 "tony_parser.ml"
                : 'simple))
@@ -784,14 +784,14 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'atom) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 141 "tony_parser.mly"
+# 140 "tony_parser.mly"
                          (())
 # 790 "tony_parser.ml"
                : 'simple))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'call) in
     Obj.repr(
-# 142 "tony_parser.mly"
+# 141 "tony_parser.mly"
            (())
 # 797 "tony_parser.ml"
                : 'simple))
@@ -799,13 +799,13 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'simple) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'other_simple) in
     Obj.repr(
-# 144 "tony_parser.mly"
+# 143 "tony_parser.mly"
                                   (())
 # 805 "tony_parser.ml"
                : 'simple_list))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 146 "tony_parser.mly"
+# 145 "tony_parser.mly"
                            (())
 # 811 "tony_parser.ml"
                : 'other_simple))
@@ -813,14 +813,14 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'simple) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'other_simple) in
     Obj.repr(
-# 147 "tony_parser.mly"
+# 146 "tony_parser.mly"
                                   (())
 # 819 "tony_parser.ml"
                : 'other_simple))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'id) in
     Obj.repr(
-# 149 "tony_parser.mly"
+# 148 "tony_parser.mly"
                                 (())
 # 826 "tony_parser.ml"
                : 'call))
@@ -829,13 +829,13 @@ let yyact = [|
     let _3 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _4 = (Parsing.peek_val __caml_parser_env 1 : 'other_expr) in
     Obj.repr(
-# 150 "tony_parser.mly"
+# 149 "tony_parser.mly"
                                              (())
 # 835 "tony_parser.ml"
                : 'call))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 152 "tony_parser.mly"
+# 151 "tony_parser.mly"
                          (())
 # 841 "tony_parser.ml"
                : 'other_expr))
@@ -843,20 +843,20 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'other_expr) in
     Obj.repr(
-# 153 "tony_parser.mly"
+# 152 "tony_parser.mly"
                                (())
 # 849 "tony_parser.ml"
                : 'other_expr))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'id) in
     Obj.repr(
-# 155 "tony_parser.mly"
+# 154 "tony_parser.mly"
           (())
 # 856 "tony_parser.ml"
                : 'atom))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 156 "tony_parser.mly"
+# 155 "tony_parser.mly"
                    (())
 # 862 "tony_parser.ml"
                : 'atom))
@@ -864,54 +864,54 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 3 : 'atom) in
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 157 "tony_parser.mly"
+# 156 "tony_parser.mly"
                                         (())
 # 870 "tony_parser.ml"
                : 'atom))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'call) in
     Obj.repr(
-# 158 "tony_parser.mly"
+# 157 "tony_parser.mly"
          (())
 # 877 "tony_parser.ml"
                : 'atom))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'atom) in
     Obj.repr(
-# 160 "tony_parser.mly"
+# 159 "tony_parser.mly"
             (())
 # 884 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 161 "tony_parser.mly"
+# 160 "tony_parser.mly"
                 (())
 # 890 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 162 "tony_parser.mly"
+# 161 "tony_parser.mly"
                  (())
 # 896 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 163 "tony_parser.mly"
+# 162 "tony_parser.mly"
                                (())
 # 903 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 164 "tony_parser.mly"
+# 163 "tony_parser.mly"
                               (())
 # 910 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 165 "tony_parser.mly"
+# 164 "tony_parser.mly"
                                 (())
 # 917 "tony_parser.ml"
                : 'expr))
@@ -920,7 +920,7 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'oper) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 166 "tony_parser.mly"
+# 165 "tony_parser.mly"
                    (())
 # 926 "tony_parser.ml"
                : 'expr))
@@ -929,26 +929,26 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'lg_oper) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 167 "tony_parser.mly"
+# 166 "tony_parser.mly"
                       (())
 # 935 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 168 "tony_parser.mly"
+# 167 "tony_parser.mly"
            (())
 # 941 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 169 "tony_parser.mly"
+# 168 "tony_parser.mly"
             (())
 # 947 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 170 "tony_parser.mly"
+# 169 "tony_parser.mly"
                (())
 # 954 "tony_parser.ml"
                : 'expr))
@@ -956,7 +956,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 171 "tony_parser.mly"
+# 170 "tony_parser.mly"
                     (())
 # 962 "tony_parser.ml"
                : 'expr))
@@ -964,7 +964,7 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 172 "tony_parser.mly"
+# 171 "tony_parser.mly"
                    (())
 # 970 "tony_parser.ml"
                : 'expr))
@@ -972,20 +972,20 @@ let yyact = [|
     let _2 = (Parsing.peek_val __caml_parser_env 3 : 'ttype) in
     let _4 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 173 "tony_parser.mly"
+# 172 "tony_parser.mly"
                                                (())
 # 978 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 174 "tony_parser.mly"
+# 173 "tony_parser.mly"
           (())
 # 984 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 175 "tony_parser.mly"
+# 174 "tony_parser.mly"
                                         (())
 # 991 "tony_parser.ml"
                : 'expr))
@@ -993,93 +993,93 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'expr) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'expr) in
     Obj.repr(
-# 176 "tony_parser.mly"
+# 175 "tony_parser.mly"
                      (())
 # 999 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 177 "tony_parser.mly"
+# 176 "tony_parser.mly"
                                       (())
 # 1006 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : 'expr) in
     Obj.repr(
-# 178 "tony_parser.mly"
+# 177 "tony_parser.mly"
                                       (())
 # 1013 "tony_parser.ml"
                : 'expr))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 180 "tony_parser.mly"
+# 179 "tony_parser.mly"
               (())
 # 1019 "tony_parser.ml"
                : 'oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 180 "tony_parser.mly"
+# 179 "tony_parser.mly"
                              (())
 # 1025 "tony_parser.ml"
                : 'oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 180 "tony_parser.mly"
+# 179 "tony_parser.mly"
                                             (())
 # 1031 "tony_parser.ml"
                : 'oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 180 "tony_parser.mly"
+# 179 "tony_parser.mly"
                                                          (())
 # 1037 "tony_parser.ml"
                : 'oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 180 "tony_parser.mly"
+# 179 "tony_parser.mly"
                                                                       (())
 # 1043 "tony_parser.ml"
                : 'oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 182 "tony_parser.mly"
+# 181 "tony_parser.mly"
                (())
 # 1049 "tony_parser.ml"
                : 'lg_oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 182 "tony_parser.mly"
+# 181 "tony_parser.mly"
                             (())
 # 1055 "tony_parser.ml"
                : 'lg_oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 182 "tony_parser.mly"
+# 181 "tony_parser.mly"
                                           (())
 # 1061 "tony_parser.ml"
                : 'lg_oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 182 "tony_parser.mly"
+# 181 "tony_parser.mly"
                                                            (())
 # 1067 "tony_parser.ml"
                : 'lg_oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 182 "tony_parser.mly"
+# 181 "tony_parser.mly"
                                                                             (())
 # 1073 "tony_parser.ml"
                : 'lg_oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 182 "tony_parser.mly"
+# 181 "tony_parser.mly"
                                                                                                 (())
 # 1079 "tony_parser.ml"
                : 'lg_oper))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 184 "tony_parser.mly"
+# 183 "tony_parser.mly"
            (())
 # 1085 "tony_parser.ml"
                : 'id))
