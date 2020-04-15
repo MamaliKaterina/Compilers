@@ -29,7 +29,7 @@
 %token T_skip
 %token T_tail
 %token T_true
-%token T_var
+%token<string> T_var
 %token<int> T_int_const
 %token<char> T_char_const
 %token<string> T_string_const
@@ -68,13 +68,13 @@
 %type <ast_def list> def
 %type <ast_stmt list> multi_stmt
 %type <ast_header> header
-%type <ast_ttype> mytype
-%type <ast_formal list> myformal /*not sure if needed*/
+%type <mytyp> mytype
+%type <ast_formal list> myformal
 %type <ast_formal list> repformal
 %type <ast_formal> formal
 %type <paramPas> myref
-%type <T_var list> other_id /*not sure if correct*/
-%type <ast_ttype> ttype
+%type <string list> other_id
+%type <typ> ttype
 %type <ast_func_decl> func_decl
 %type <ast_var_def> var_def
 %type <ast_stmt> stmt
@@ -82,13 +82,13 @@
 %type <ast_else_stmt> else_stmt
 %type <ast_simple> simple
 %type <ast_simple list> simple_list
-%type <ast_simple list> other_simple /*not sure if needed*/
+%type <ast_simple list> other_simple
 %type <ast_call> call
 %type <ast_expr list> other_expr
 %type <ast_atom> atom
 %type <ast_expr> expr
-%type <> oper /*not sure if needed*/
-%type <> lg_oper /*not sure if needed*/
+%type <operator> oper
+%type <lg_operator> lg_oper
 
 %%
 
@@ -106,8 +106,8 @@ multi_stmt : stmt	{ $1 }
 
 header : mytype T_var T_lbracket myformal T_rbracket	{ Header ($1, $2, $4) }
 
-mytype : /*nothing*/ 	{ () }
-	   | ttype	{ $1 }
+mytype : /*nothing*/ 	{ None }
+	   | ttype	{ Some $1 }
 
 myformal : /*nothing*/	{ [] }
 		 | formal repformal	{ $1::$2 }
@@ -115,7 +115,7 @@ myformal : /*nothing*/	{ [] }
 repformal : /*nothing*/	{ [] }
 		  | T_semicolon formal repformal	{ $2::$3 }
 
-formal : myref ttype T_var other_id	{ Formal ($1, $2, $3, $4) }
+formal : myref ttype T_var other_id	{ Formal ($1, $2, $3::$4) }
 
 myref : /*nothing*/	{ BY_val }
 	  | T_ref	{ BY_ref }
@@ -123,15 +123,15 @@ myref : /*nothing*/	{ BY_val }
 other_id : /*nothing*/	{ [] }
 		 | T_comma T_var other_id	{ $2::$3 }
 
-ttype : T_int	{ TY_int () }
-	 | T_bool	{ TY_bool () }
-	 | T_char	{ TY_char () }
+ttype : T_int	{ TY_int }
+	 | T_bool	{ TY_bool }
+	 | T_char	{ TY_char }
 	 | ttype T_lsqbracket T_rsqbracket	{ TY_array $1 }
 	 | T_list T_lsqbracket ttype T_rsqbracket	{ TY_list $3 }
 
 func_decl : T_decl header	{ Func_decl $2 }
 
-var_def : ttype T_var other_id	{ Var_def ($1, $2, $3) }
+var_def : ttype T_var other_id	{ Var_def ($1, $2::$3) }
 
 stmt : simple	{ S_simple $1 }
 	 | T_exit	{ () }
@@ -151,7 +151,7 @@ simple : T_skip	{ () }
 
 simple_list : simple other_simple	{ $1::$2 }
 
-other_simple : /*nothing*/	{ () }
+other_simple : /*nothing*/	{ [] }
 			 | T_comma simple other_simple	{ $2::$3 }
 
 call : T_var T_lbracket T_rbracket	{()}
@@ -171,8 +171,8 @@ expr : atom	{()}
 	 | T_lbracket expr T_rbracket	{ $2 }
 	 | T_plus expr %prec NT_plus	{()}
 	 | T_minus expr %prec NT_minus	{()}
-	 | expr oper expr	{()}
-	 | expr lg_oper expr {()}
+	 | expr oper expr	{ E_op ($1, $2, $3) }
+	 | expr lg_oper expr { E_lg_op ($1, $2, $3) }
 	 | T_true	{()}
 	 | T_false	{()}
 	 | T_not expr	{()}
@@ -185,6 +185,6 @@ expr : atom	{()}
 	 | T_head T_lbracket expr T_rbracket	{()}
 	 | T_tail T_lbracket expr T_rbracket	{()}
 
-oper : T_plus {()} | T_minus {()} | T_times {()} | T_div {()} | T_mod {()}
+oper : T_plus { O_plus } | T_minus { O_minus } | T_times { O_times } | T_div { O_div } | T_mod { O_mod }
 
-lg_oper : T_eq {()} | T_dif {()} | T_less {()} | T_greater {()} | T_less_eq {()} | T_greater_eq {()}
+lg_oper : T_eq { LO_eq } | T_dif { LO_dif } | T_less { LO_less } | T_greater { LO_greater } | T_less_eq { LO_less_eq } | T_greater_eq { LO_greater_eq }
