@@ -1,5 +1,5 @@
 %{
-	open Ast
+	open Tony_ast
 %}
 
 %token T_eof
@@ -68,7 +68,7 @@
 %type <ast_def list> def
 %type <ast_stmt list> multi_stmt
 %type <ast_header> header
-%type <mytyp> mytype
+%type <typ option> mytype
 %type <ast_formal list> myformal
 %type <ast_formal list> repformal
 %type <ast_formal> formal
@@ -134,7 +134,7 @@ func_decl : T_decl header	{ Func_decl $2 }
 var_def : ttype T_var other_id	{ Var_def ($1, $2::$3) }
 
 stmt : simple	{ S_simple $1 }
-	 | T_exit	{ () }
+	 | T_exit	{ S_exit () }
 	 | T_return expr	{ S_return $2 }
 	 | T_if expr T_colon multi_stmt elsif_stmt else_stmt T_end	{ S_if ($2, $4, $5, $6) }
 	 | T_for simple_list T_semicolon expr T_semicolon simple_list T_colon multi_stmt T_end	{ S_for ($2, $4, $6, $8) }
@@ -145,8 +145,8 @@ elsif_stmt : /*nothing*/	{ () }
 else_stmt : /*nothing*/	{ () }
 		  | T_else T_colon multi_stmt	{ S_else $3 }
 
-simple : T_skip	{ () }
-	   | atom T_assign expr	{ S_atom ($1, $3) }
+simple : T_skip	{ S_skip () }
+	   | atom T_assign expr	{ S_assign ($1, $3) }
 	   | call	{ S_call $1 }
 
 simple_list : simple other_simple	{ $1::$2 }
@@ -154,36 +154,36 @@ simple_list : simple other_simple	{ $1::$2 }
 other_simple : /*nothing*/	{ [] }
 			 | T_comma simple other_simple	{ $2::$3 }
 
-call : T_var T_lbracket T_rbracket	{()}
-	 | T_var T_lbracket expr other_expr T_rbracket	{()}
+call : T_var T_lbracket T_rbracket	{ C_call ($1, []) }
+	 | T_var T_lbracket expr other_expr T_rbracket	{ C_call ($1, $3::$4) }
 
-other_expr : /*nothing*/	{()}
-		   | T_comma expr other_expr	{()}
+other_expr : /*nothing*/	{ [] }
+		   | T_comma expr other_expr	{ $2::$3 }
 
-atom : T_var	{()}
-	 | T_string_const	{()}
-	 | atom T_lsqbracket expr T_rsqbracket	{()}
-	 | call	{()}
+atom : T_var	{ A_var $1 }
+	 | T_string_const	{ A_string_const $1 }
+	 | atom T_lsqbracket expr T_rsqbracket	{ A_atom ($1, $3) }
+	 | call	{ A_call $1 }
 
-expr : atom	{()}
-	 | T_int_const	{ E_int_const }
-	 | T_char_const	{ E_char_const }
+expr : atom	{ E_atom $1 }
+	 | T_int_const	{ E_int_const $1 }
+	 | T_char_const	{ E_char_const $1 }
 	 | T_lbracket expr T_rbracket	{ $2 }
-	 | T_plus expr %prec NT_plus	{()}
-	 | T_minus expr %prec NT_minus	{()}
+	 | T_plus expr %prec NT_plus	{ E_un_plus $2 }
+	 | T_minus expr %prec NT_minus	{ E_un_minus $2 }
 	 | expr oper expr	{ E_op ($1, $2, $3) }
 	 | expr lg_oper expr { E_lg_op ($1, $2, $3) }
-	 | T_true	{()}
-	 | T_false	{()}
-	 | T_not expr	{()}
-	 | expr T_and expr	{()}
-	 | expr T_or expr	{()}
-	 | T_new ttype T_lsqbracket expr T_rsqbracket	{()}
-	 | T_nil	{()}
-	 | T_is_nil T_lbracket expr T_rbracket	{()}
-	 | expr T_cons expr	{()}
-	 | T_head T_lbracket expr T_rbracket	{()}
-	 | T_tail T_lbracket expr T_rbracket	{()}
+	 | T_true	{ E_bool True }
+	 | T_false	{ E_bool False }
+	 | T_not expr	{ E_not $2 }
+	 | expr T_and expr	{ E_and_or ($1, And, $3) }
+	 | expr T_or expr	{ E_and_or ($1, Or, $3) }
+	 | T_new ttype T_lsqbracket expr T_rsqbracket	{ E_new ($2, $4) }
+	 | T_nil	{ E_nil () }
+	 | T_is_nil T_lbracket expr T_rbracket	{ E_is_nil $3 }
+	 | expr T_cons expr	{ E_cons ($1, $3) }
+	 | T_head T_lbracket expr T_rbracket	{ E_head $3 }
+	 | T_tail T_lbracket expr T_rbracket	{ E_tail $3 }
 
 oper : T_plus { O_plus } | T_minus { O_minus } | T_times { O_times } | T_div { O_div } | T_mod { O_mod }
 

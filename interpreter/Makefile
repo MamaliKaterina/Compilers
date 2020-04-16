@@ -18,7 +18,7 @@ OCAMLDEP=ocamldep
 %.cmo %.cmi: %.ml
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
 
-tony$(EXE): Ast.cmo tony_lexer.cmo tony_parser.cmo main.cmo
+tony$(EXE): tony_ast.cmo tony_lexer.cmo tony_parser.cmo main.cmo
 	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
 
 tony_lexer.ml: tony_lexer.mll
@@ -31,7 +31,7 @@ tony_parser.ml tony_parser.mli: tony_parser.mly
 
 -include .depend
 
-depend: Ast.mli Ast.ml tony_lexer.ml tony_lexer.mli tony_parser.ml tony_parser.mli main.ml
+depend: tony_ast.mli tony_ast.ml tony_lexer.ml tony_lexer.mli tony_parser.ml tony_parser.mli main.ml
 	$(OCAMLDEP) $^ > .depend
 
 clean:
