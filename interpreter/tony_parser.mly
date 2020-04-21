@@ -1,5 +1,5 @@
 %{
-	open Tony_ast
+	open Helping_types
 %}
 
 %token T_eof
@@ -21,7 +21,7 @@
 %token T_mod
 %token T_new
 %token T_nil
-%token<bool> T_is_nil
+%token T_is_nil
 %token T_not
 %token T_or
 %token T_ref
@@ -63,7 +63,7 @@
 %nonassoc NT_plus NT_minus
 
 %start program
-%type <Ast.ast_func_def> program
+%type <Helping_types.ast_func_def> program
 %type <ast_func_def> func_def
 %type <ast_def list> def
 %type <ast_stmt list> multi_stmt
@@ -78,8 +78,8 @@
 %type <ast_func_decl> func_decl
 %type <ast_var_def> var_def
 %type <ast_stmt> stmt
-%type <ast_elsif_stmt> elsif_stmt
-%type <ast_else_stmt> else_stmt
+%type <ast_elsif_stmt option> elsif_stmt
+%type <ast_else_stmt option> else_stmt
 %type <ast_simple> simple
 %type <ast_simple list> simple_list
 %type <ast_simple list> other_simple
@@ -97,11 +97,11 @@ program	: func_def T_eof	{ $1 }
 func_def : T_def header T_colon def multi_stmt T_end 	{ Func_def ($2, $4, $5) }
 
 def : /*nothing*/ 	{ [] }
-	 | func_def def	{ $1::$2 }
-	 | func_decl def	{ $1::$2 }
-	 | var_def def	{ $1::$2 }
+	 | func_def def	{ (F_def $1)::$2 }
+	 | func_decl def	{ (F_decl $1)::$2 }
+	 | var_def def	{ (V_def $1)::$2 }
 
-multi_stmt : stmt	{ $1 }
+multi_stmt : stmt	{ [$1] }
 		   | stmt multi_stmt	{ $1::$2 }
 
 header : mytype T_var T_lbracket myformal T_rbracket	{ Header ($1, $2, $4) }
@@ -139,11 +139,11 @@ stmt : simple	{ S_simple $1 }
 	 | T_if expr T_colon multi_stmt elsif_stmt else_stmt T_end	{ S_if ($2, $4, $5, $6) }
 	 | T_for simple_list T_semicolon expr T_semicolon simple_list T_colon multi_stmt T_end	{ S_for ($2, $4, $6, $8) }
 
-elsif_stmt : /*nothing*/	{ () }
-		  | T_elsif expr T_colon multi_stmt elsif_stmt	{ S_elsif ($2, $4, $5) }
+elsif_stmt : /*nothing*/	{ None }
+		  | T_elsif expr T_colon multi_stmt elsif_stmt	{ Some (S_elsif ($2, $4, $5)) }
 
-else_stmt : /*nothing*/	{ () }
-		  | T_else T_colon multi_stmt	{ S_else $3 }
+else_stmt : /*nothing*/	{ None }
+		  | T_else T_colon multi_stmt	{ Some (S_else $3) }
 
 simple : T_skip	{ S_skip () }
 	   | atom T_assign expr	{ S_assign ($1, $3) }
@@ -179,7 +179,7 @@ expr : atom	{ E_atom $1 }
 	 | expr T_and expr	{ E_and_or ($1, And, $3) }
 	 | expr T_or expr	{ E_and_or ($1, Or, $3) }
 	 | T_new ttype T_lsqbracket expr T_rsqbracket	{ E_new ($2, $4) }
-	 | T_nil	{ E_nil () }
+	 | T_nil	{ E_nil }
 	 | T_is_nil T_lbracket expr T_rbracket	{ E_is_nil $3 }
 	 | expr T_cons expr	{ E_cons ($1, $3) }
 	 | T_head T_lbracket expr T_rbracket	{ E_head $3 }

@@ -8,6 +8,7 @@ endif
 OCAMLC_FLAGS=-g
 OCAMLC=ocamlc
 OCAMLDEP=ocamldep
+FILES=Helping_types.cmo tony_lexer.cmo tony_parser.cmo tony_ActRec.cmo tony_ast.cmo main.cmo
 
 %.cmo: %.ml %.mli
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
@@ -18,8 +19,8 @@ OCAMLDEP=ocamldep
 %.cmo %.cmi: %.ml
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
 
-tony$(EXE): tony_ast.cmo tony_lexer.cmo tony_parser.cmo main.cmo
-	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
+tony$(EXE): Helping_types.cmo tony_parser.cmi tony_lexer.cmi tony_lexer.cmo tony_parser.cmo tony_ActRec.cmo tony_ast.cmo main.cmo
+	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $(FILES)
 
 tony_lexer.ml: tony_lexer.mll
 	ocamllex -o $@ $<
@@ -31,7 +32,7 @@ tony_parser.ml tony_parser.mli: tony_parser.mly
 
 -include .depend
 
-depend: tony_ast.mli tony_ast.ml tony_lexer.ml tony_lexer.mli tony_parser.ml tony_parser.mli main.ml
+depend: Helping_types.ml tony_parser.mli tony_lexer.mli tony_lexer.ml tony_parser.ml tony_ActRec.ml tony_ast.ml  main.ml
 	$(OCAMLDEP) $^ > .depend
 
 clean:

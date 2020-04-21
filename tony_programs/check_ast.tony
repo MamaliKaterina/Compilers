@@ -1,0 +1,12 @@
+def main ():
+	
+	int number
+	char day
+
+	skip
+	number := 0
+	if number = 0: day := "Monday"
+	elsif number = 1: day := "Tuesday"
+	end
+
+end

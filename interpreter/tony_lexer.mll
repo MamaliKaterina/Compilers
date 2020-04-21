@@ -1,6 +1,7 @@
 {
 	open Lexing
 	open Tony_parser
+	open Helping_types
 }
 
 let digit = ['0'-'9']
@@ -28,7 +29,7 @@ rule lexer = parse
 	| "mod"		{T_mod}
 	| "new"		{T_new}
 	| "nil"		{T_nil}
-	| "is_nil"	{T_is_nil}
+	| "nil?"	{T_is_nil}
 	| "not"		{T_not}
 	| "or"		{T_or}
 	| "ref"		{T_ref}
@@ -37,10 +38,10 @@ rule lexer = parse
 	| "tail"	{T_tail}
 	| "true"	{T_true}
 
-	| letter (letter | digit | ['_' '?'])*	{T_var}
-	| digit+	{T_int_const}
-	| "'" (escape_seq | [^ '\\' '\'' '\"' '\n']) "'"	{T_char_const}	(*can't print non latin characters*)
-	| "\"" (escape_seq | [^ '\\' '\'' '\"' '\n'])* "\""	{T_string_const}
+	| letter (letter | digit | ['_' '?'])* {T_var (lexeme lexbuf)}
+	| digit+	{T_int_const (int_of_string (lexeme lexbuf))}
+        | "'" (escape_seq | [^ '\\' '\'' '\"' '\n']) "'"	{T_char_const (lexeme lexbuf).[0]}	(*can't print non latin characters*)
+	| "\"" (escape_seq | [^ '\\' '\'' '\"' '\n'])* "\""	{T_string_const (lexeme lexbuf)}
 
 	| '=' 	{T_eq}
 	| '+'	{T_plus}
