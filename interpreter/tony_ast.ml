@@ -9,7 +9,12 @@ let string_to_array str =
     ar.(!n-1) <- M_char str.[!n] ;
 		n := !n - 1
 	done ;
-  M_array (ref ar)
+ M_array (ref ar)
+
+let valid () =
+  match !cur_act_rec.return_value with
+  | None    -> true
+  | Some(_) -> false
 
 let run_func_def ast =
 	match ast with
@@ -119,8 +124,7 @@ and run_call ast =
 								              | Func_def ( Header ( _, nm, form_list), _, _) ->
 								                           init_par exp_list form_list) ;
 							   	           run_func fun_body ;
-									           remove_act_rec ();
-								             get_return_value ()
+									           remove_act_rec ()
 
 (*This will change to return a reference to a helping_type*)
 and run_atom_assign ast =
@@ -156,6 +160,7 @@ and run_simple ast =
 
 
 and run_stmt ast =
+  if valid () then (
   match ast with
   | S_simple s                         -> run_simple s
   | S_exit ()                          -> put_return_value Empty
@@ -179,7 +184,8 @@ and run_stmt ast =
 																                      let var2 = run_expr e in
 																                      match var2 with
 																                      | M_bool(v2)	-> b := v2
-                                          					done ))))
+                                                   done ))))
+  ) else ()
 
 and run_elsif_stmt ast els =
   match ast with
@@ -201,6 +207,6 @@ and run_else_stmt ast =
 and run_func ast =
   match ast with
   | Func_def (_, defs, stmts) -> List.iter run_def defs;
-								                 List.iter run_stmt stmts
+                                 List.iter run_stmt stmts
 
 let run ast = run_func ast

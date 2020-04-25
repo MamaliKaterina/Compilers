@@ -53,6 +53,7 @@
 %token T_semicolon
 %token T_comma
 
+
 %left T_or
 %left T_and
 %nonassoc T_not
@@ -61,6 +62,17 @@
 %left T_plus T_minus
 %left T_times T_div T_mod
 %nonassoc NT_plus NT_minus
+/*
+%left T_or
+%left T_and
+%nonassoc T_not
+%nonassoc lgop
+%right T_cons
+%left op
+%left T_plus T_minus
+%left T_times T_div T_mod
+%nonassoc NT_plus NT_minus*/
+
 
 %start program
 %type <Helping_types.ast_func_def> program
@@ -87,8 +99,8 @@
 %type <ast_expr list> other_expr
 %type <ast_atom> atom
 %type <ast_expr> expr
-%type <operator> oper
-%type <lg_operator> lg_oper
+/*%type <operator> oper
+%type <lg_operator> lg_oper*/
 
 %%
 
@@ -171,8 +183,17 @@ expr : atom	{ E_atom $1 }
 	 | T_lbracket expr T_rbracket	{ $2 }
 	 | T_plus expr %prec NT_plus	{ E_un_plus $2 }
 	 | T_minus expr %prec NT_minus	{ E_un_minus $2 }
-	 | expr oper expr	{ E_op ($1, $2, $3) }
-	 | expr lg_oper expr { E_lg_op ($1, $2, $3) }
+	 | expr T_plus expr { E_op ($1, O_plus, $3) }
+	 | expr T_minus expr { E_op ($1, O_minus, $3) }
+	 | expr T_times expr { E_op ($1, O_times, $3) }
+	 | expr T_div expr { E_op ($1, O_div, $3) }
+	 | expr T_mod expr { E_op ($1, O_mod, $3) }
+	 | expr T_eq expr { E_lg_op ($1, LO_eq, $3) }
+	 | expr T_dif expr { E_lg_op ($1, LO_dif, $3) }
+	 | expr T_less expr { E_lg_op ($1, LO_less, $3) }
+	 | expr T_greater expr { E_lg_op ($1, LO_greater, $3) }
+	 | expr T_less_eq expr { E_lg_op ($1, LO_less_eq, $3) }
+	 | expr T_greater_eq expr { E_lg_op ($1, LO_greater_eq, $3) }
 	 | T_true	{ E_bool True }
 	 | T_false	{ E_bool False }
 	 | T_not expr	{ E_not $2 }
@@ -185,6 +206,6 @@ expr : atom	{ E_atom $1 }
 	 | T_head T_lbracket expr T_rbracket	{ E_head $3 }
 	 | T_tail T_lbracket expr T_rbracket	{ E_tail $3 }
 
-oper : T_plus { O_plus } | T_minus { O_minus } | T_times { O_times } | T_div { O_div } | T_mod { O_mod }
+/*oper : T_plus { O_plus } | T_minus { O_minus } | T_times { O_times } | T_div { O_div } | T_mod { O_mod }
 
-lg_oper : T_eq { LO_eq } | T_dif { LO_dif } | T_less { LO_less } | T_greater { LO_greater } | T_less_eq { LO_less_eq } | T_greater_eq { LO_greater_eq }
+lg_oper : T_eq { LO_eq } | T_dif { LO_dif } | T_less { LO_less } | T_greater { LO_greater } | T_less_eq { LO_less_eq } | T_greater_eq { LO_greater_eq }*/

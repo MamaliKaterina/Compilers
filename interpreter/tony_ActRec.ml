@@ -63,8 +63,10 @@ let remove_act_rec () =
 	match !cur_act_rec.previous_act_rec with
 	| Some(act_rec)	-> (let vl = !cur_act_rec.return_value in
 	                    cur_act_rec := act_rec;
-											!cur_act_rec.return_value <- vl)
-	| None 					-> ()
+                      (match vl with
+                       | None -> Empty
+                       | Some(v) -> v))
+	
 
 let put_return_value vl =
   !cur_act_rec.return_value <- Some vl
