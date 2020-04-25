@@ -40,7 +40,7 @@ rule lexer = parse
 
 	| letter (letter | digit | ['_' '?'])* {T_var (lexeme lexbuf)}
 	| digit+	{T_int_const (int_of_string (lexeme lexbuf))}
-        | "'" (escape_seq | [^ '\\' '\'' '\"' '\n']) "'"	{T_char_const (lexeme lexbuf).[0]}	(*can't print non latin characters*)
+  | "'" (escape_seq | [^ '\\' '\'' '\"' '\n']) "'"	{T_char_const (lexeme lexbuf).[1]}	(*can't print non latin characters*)
 	| "\"" (escape_seq | [^ '\\' '\'' '\"' '\n'])* "\""	{T_string_const (lexeme lexbuf)}
 
 	| '=' 	{T_eq}
@@ -66,7 +66,7 @@ rule lexer = parse
 
 	| '\n'	{new_line lexbuf; lexer lexbuf}
 	| empty+	{lexer lexbuf}
-	| "%" [^ '\n']* "\n"	{lexer lexbuf}
+	| "%" [^ '\n']* "\n"	{new_line lexbuf; lexer lexbuf}
 
 	| eof	{T_eof}
 

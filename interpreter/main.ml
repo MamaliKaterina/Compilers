@@ -10,8 +10,9 @@ let main =
       run asts;
 	  print_act_rec ();
     	exit 0
-  	with 
+  	with
 	|Parsing.Parse_error ->
     	(Printf.eprintf "syntax error in line %d\n" lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum;
     	exit 1)
-	
+       (*|Match_failure (_,_,_) ->
+         (Printf.eprintf "match error\n"; print_act_rec(); exit 1)*)

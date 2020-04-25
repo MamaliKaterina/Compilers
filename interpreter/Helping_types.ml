@@ -1,10 +1,10 @@
-type helping_type = 
+type helping_type =
 	| Empty
-	| M_int of int 
-	| M_char of char 
+	| M_int of int
+	| M_char of char
 	| M_bool of bool
-	| M_array of helping_type array
-	| M_list of helping_type list
+	| M_array of helping_type array ref
+	| M_list of helping_type list ref
 	| M_name of string
 
 type typ = TY_int | TY_bool| TY_char | TY_array of typ | TY_list of typ
@@ -107,13 +107,22 @@ let greater_eq v1 v2 =
 	| (M_char(c1), M_char(c2))		-> M_bool (c1 >= c2)
 	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 >= b2)
 
+(*  let rec print_helping_type_ref t =
+  	match !t with
+  	| Empty			-> Printf.eprintf " Empty "
+  	| M_int (n)		-> Printf.eprintf " %d " n
+  	| M_char (c)	-> Printf.eprintf " %c " c
+  	| M_bool (b)	-> Printf.eprintf " %b " b
+  	| M_array (a)	-> Printf.eprintf "{ "; Array.iter print_helping_type_ref !a; Printf.eprintf " }"
+  	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type !l; Printf.eprintf " ]"
+    | M_name (s)	-> Printf.eprintf " %s " s *)
+
 let rec print_helping_type t =
 	match t with
-	| Empty			-> Printf.eprintf " Empty "
+	| Empty			  -> Printf.eprintf " Empty "
 	| M_int (n)		-> Printf.eprintf " %d " n
-	| M_char (c)	-> Printf.eprintf " %c " c 
+	| M_char (c)	-> Printf.eprintf " %c " c
 	| M_bool (b)	-> Printf.eprintf " %b " b
-	| M_array (a)	-> Printf.eprintf "{ "; Array.iter print_helping_type a; Printf.eprintf " }"
-	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type l; Printf.eprintf " ]"
+	| M_array (a)	-> Printf.eprintf "{ "; Array.iter print_helping_type !a; Printf.eprintf " }"
+	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type !l; Printf.eprintf " ]"
 	| M_name (s)	-> Printf.eprintf " %s " s
-
