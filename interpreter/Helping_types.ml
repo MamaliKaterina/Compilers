@@ -7,7 +7,7 @@ type helping_type =
 	| M_list of helping_type list ref
 	| M_name of string
 
-type typ = TY_int | TY_bool| TY_char | TY_array of typ | TY_list of typ
+type typ = Null | TY_int | TY_bool| TY_char | TY_array of typ | TY_list of typ
 type paramPas = BY_val | BY_ref
 type operator = O_plus | O_minus | O_times | O_div | O_mod
 type lg_operator = LO_eq | LO_dif | LO_less | LO_greater | LO_less_eq | LO_greater_eq

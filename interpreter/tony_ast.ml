@@ -52,7 +52,7 @@ let rec run_expr ast =
                              | M_int(v), M_int(m), O_times -> M_int (v * m)
                              | M_int(v), M_int(m), O_div   -> M_int (v / m)
                              | M_int(v), M_int(m), O_mod   -> M_int (v mod m) )
-  | E_lg_op (e1, op, e2)  -> let v1 = run_expr e1
+  | E_lg_op (e1, op, e2)  -> let v1 = run_expr e1 (*short circuit.... must change*)
                              and v2 = run_expr e2 in
             		             (match op with
             		             | LO_eq 			    -> equal v1 v2
