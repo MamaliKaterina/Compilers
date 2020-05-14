@@ -73,40 +73,39 @@ and ast_def =
 
 let equal v1 v2 =
 	match v1, v2 with
-	| (M_int(n1), M_int(n2))		-> M_bool (n1 = n2)
-	| (M_char(c1), M_char(c2))		-> M_bool (c1 = c2)
-	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 = b2)
+	| (M_int(n1), M_int(n2))   -> M_bool (n1 = n2)
+	| (M_char(c1), M_char(c2)) -> M_bool (c1 = c2)
+	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 = b2)
 
 let not_equal v1 v2 =
 	match v1, v2 with
-	| (M_int(n1), M_int(n2))		-> M_bool (n1 <> n2)
-	| (M_char(c1), M_char(c2))		-> M_bool (c1 <> c2)
-	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 <> b2)
+	| (M_int(n1), M_int(n2))   -> M_bool (n1 <> n2)
+	| (M_char(c1), M_char(c2)) -> M_bool (c1 <> c2)
+	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 <> b2)
 
 let less v1 v2 =
 	match v1, v2 with
-	| (M_int(n1), M_int(n2))		-> M_bool (n1 < n2)
-	| (M_char(c1), M_char(c2))		-> M_bool (c1 < c2)
-	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 < b2)
+	| (M_int(n1), M_int(n2))   -> M_bool (n1 < n2)
+	| (M_char(c1), M_char(c2)) -> M_bool (c1 < c2)
+	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 < b2)
 
 let greater v1 v2 =
 	match v1, v2 with
-	| (M_int(n1), M_int(n2))		-> M_bool (n1 > n2)
-	| (M_char(c1), M_char(c2))		-> M_bool (c1 > c2)
-	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 > b2)
+	| (M_int(n1), M_int(n2))   -> M_bool (n1 > n2)
+	| (M_char(c1), M_char(c2)) -> M_bool (c1 > c2)
+	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 > b2)
 
 let less_eq v1 v2 =
 	match v1, v2 with
-	| (M_int(n1), M_int(n2))		-> M_bool (n1 <= n2)
-	| (M_char(c1), M_char(c2))		-> M_bool (c1 <= c2)
-	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 <= b2)
+	| (M_int(n1), M_int(n2))   -> M_bool (n1 <= n2)
+	| (M_char(c1), M_char(c2)) -> M_bool (c1 <= c2)
+	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 <= b2)
 
 let greater_eq v1 v2 =
 	match v1, v2 with
-	| (M_int(n1), M_int(n2))		-> M_bool (n1 >= n2)
-	| (M_char(c1), M_char(c2))		-> M_bool (c1 >= c2)
-	| (M_bool(b1), M_bool(b2))		-> M_bool (b1 >= b2)
-
+	| (M_int(n1), M_int(n2))   -> M_bool (n1 >= n2)
+	| (M_char(c1), M_char(c2)) -> M_bool (c1 >= c2)
+	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 >= b2)
 
 let rec print_helping_type t =
 	match t with
@@ -117,3 +116,18 @@ let rec print_helping_type t =
 	| M_array (a)	-> Printf.eprintf "{ "; Array.iter print_helping_type !a; Printf.eprintf " }"
 	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type !l; Printf.eprintf " ]"
 	| M_name (s)	-> Printf.eprintf " %s " s
+
+let rec sizeOfType t =
+  match t with
+  | TY_int     -> 2
+  | TY_char    -> 1
+  | TY_bool    -> 1
+  | TY_array a -> 4 (*size of system word length, use 4 for 32-bit architecture???*)
+  | TY_list l  -> 4 (*size of system word length, use 4 for 32-bit architecture???*)
+  | _          -> 0
+
+let rec equalType t1 t2 =
+  match t1, t2 with
+  | TY_array a1, TY_array a2 -> equalType a1 a2
+  | TY_list l1, TY_list l2   -> equalType l1 l2
+  | _                        -> t1 = t2

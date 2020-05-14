@@ -1,7 +1,6 @@
 {
 	open Lexing
 	open Tony_parser
-	open Helping_types
 }
 
 let digit = ['0'-'9']

@@ -1,5 +1,7 @@
 open Helping_types
 open Tony_symbol
+open Identifier
+open Error
 
 exception TypeError
 
@@ -8,27 +10,39 @@ let invalid_log_op t1 t2 =
   | (TY_int, TY_int) | (TY_char, TY_char) | (TY_bool, TY_bool) -> false
   | _ -> true
 
-let sem_formals f formal =
+let sem_formal f formal =
   match formal with
-  | Formal(parPas, t, slist) -> (match parPas with
-                                 | BY_val -> List.iter (newParameter true f PASS_BY_VALUE t) (List.rev_map id_make slist)
-                                 | BY_ref -> List.iter (newParameter true f PASS_BY_REFERENCE t) (List.rev_map id_make slist) )
+  | Formal(parPas, t, slist) -> let idlist = List.rev_map id_make slist in
+                                (match parPas with
+                                | BY_val -> let rec callnewParam idlist =
+                                              (match idlist with
+                                              | [id] -> newParameter true f PASS_BY_VALUE t (List.hd idlist)
+                                              | _    -> newParameter true f PASS_BY_VALUE t (List.hd idlist);
+                                                        callnewParam (List.tl idlist) )
+                                            in callnewParam idlist
+                                | BY_ref -> let rec callnewParam idlist =
+                                              (match idlist with
+                                              | [id] -> newParameter true f PASS_BY_REFERENCE t (List.hd idlist)
+                                              | _    -> newParameter true f PASS_BY_REFERENCE t (List.hd idlist);
+                                                        callnewParam (List.tl idlist) )
+                                            in callnewParam idlist )
+(*List.iter (newParameter true f PASS_BY_VALUE t) (List.rev_map id_make slist)
+  List.iter (newParameter true f PASS_BY_REFERENCE t) (List.rev_map id_make slist)*)
 
 let rec sem_func_def ast =
   match ast with
   | Func_def (Header(tOp, nm, formals), defs, stmts) -> let id = id_make nm in
                                                         let f = newFunction id true in
-                                                          List.iter sem_formal f formals;
+                                                          List.iter (sem_formal f) formals;
                                                           (match tOp with
                                                            | Some(t) -> endFunctionHeader f t;
                                                                         openScope t
                                                            | None    -> endFunctionHeader f Null;
-                                                                         openScope Null );
-                                                          (*maybe announce parameters as varables here*)
+                                                                        openScope Null );
+                                                          (*maybe announce parameters as variables here*)
                                                           List.iter sem_def defs;
                                                           List.iter sem_stmt stmts;
                                                           closeScope ()
-
 
 and sem_func_decl ast =
   (*must keep the fact that the function must be properly defined!!!*)
@@ -37,9 +51,9 @@ and sem_func_decl ast =
                                             let f = newFunction id true in
                                               List.iter sem_formal f formals;
                                               forwardFunction f;
-                                              match tOp with
+                                              (match tOp with
                                               | Some(t) -> endFunctionHeader f t
-                                              | None    -> endFunctionHeader f Null
+                                              | None    -> endFunctionHeader f Null )
 
 and sem_var_def ast =
   match ast with
@@ -50,7 +64,6 @@ and sem_def ast =
   | F_def fdef   -> sem_func_def fdef
   | F_decl fdecl -> sem_func_decl fdecl
   | V_def vdef   -> sem_var_def vdef
-
 
 and sem_expr ast =
   (*problem... it will return the typ of expression but nothing in case of TypeError->compiler fault*)
@@ -82,25 +95,25 @@ and sem_expr ast =
                               else TY_bool)
   | E_new (a, e)          -> let a = sem_expr a
                              and t = sem_expr e in
-                             (if a <> TY_array(_) || t <> TY_int (*must be positive->runtime check!!!*) then raise TypeError
+                             (if (a <> TY_array || t <> TY_int) (*must be positive->runtime check!!!*) then raise TypeError
                               else a )
   | E_nil 	              -> TY_list Null
   | E_is_nil e            -> let t = sem_expr e in
-                             (if t <> TY_list(_) then raise TypeError
+                             (if t <> TY_list then raise TypeError
                               else TY_bool )
   | E_cons (e1, e2)       -> let v1 = sem_expr e1
                              and v2 = sem_expr e2 in
                              (match v2 with
-                              | TY_list(v1)  ->  v2
-                              | _            -> raise TypeError )
+                              | TY_list(v1) -> v2
+                              | _           -> raise TypeError )
   | E_head e              -> let v = sem_expr e in
                              (match v with
-                              | TY_list(l)	-> l
-                              | _         -> raise TypeError )
+                              | TY_list(l) -> l
+                              | _          -> raise TypeError )
   | E_tail e              -> let v = sem_expr e in
                              (match v with
-                              | TY_list(l)	-> v
-                              | _           -> raise TypeError )
+                              | TY_list(l) -> v
+                              | _          -> raise TypeError )
 
 and check_param exs pars =
   match exs, pars with
@@ -117,13 +130,13 @@ and sem_call c =
   | C_call(nm, exprs) -> let id = id_make nm in
                          let e = lookupEntry id LOOKUP_ALL_SCOPES true in
                          (match e.entry_info with
-        | ENTRY_function(f) -> if not (f.function_isForward) then
-                                   begin
-                                     check_param exprs f.function_paramlist;
-                                     f.function_result
-                                   end
-                              else raise TypeError
-                          | _ -> raise TypeError)
+                         | ENTRY_function(f) -> if not (f.function_isForward) then
+                                                  begin
+                                                    check_param exprs f.function_paramlist;
+                                                    f.function_result
+                                                  end
+                                                else raise TypeError
+                         | _ -> raise TypeError )
 
 and sem_atom ast =
   (*must check: -the atoms are well-defined
@@ -140,10 +153,9 @@ and sem_atom ast =
   | A_atom (a, e)      -> let v = sem_atom a
                           and n = sem_expr e in
                           (match v, n with
-                           | (TY_array(t), TY_int)	-> t
-                           | _                      -> raise TypeError )
+                           | (TY_array(t), TY_int) -> t
+                           | _                     -> raise TypeError )
   | A_call c           -> sem_call c
-
 
 and sem_simple ast =
   match ast with
@@ -152,36 +164,33 @@ and sem_simple ast =
                        and y = sem_expr e in (*it will return the typ of y*)
                        if x <> y then raise TypeError
   | S_call c        -> let v = sem_call c	in
-                        if v <> Null then raise TypeError
-
+                       if v <> Null then raise TypeError
 
 and sem_stmt ast =
-  if valid () then (
     match ast with
-    | S_simple s                         -> sem_simple s
-    | S_exit ()                          -> let rv = get_cur_return_value () in
-                                               if rv <> Null then raise TypeError
-                                               else ()
-    | S_return e                         -> let t = sem_expr e
-                                            and rv = get_cur_return_value () in
-                                            if rv <> t then raise TypeError
-                                            else ()
-    | S_if (e, stmts, elsif, els)        -> let var = sem_expr e in
-                                            (match var with
-                                             | TY_bool -> (List.iter sem_stmt stmts;
-                                                          (match elsif with
-                                                           | Some (elif)	-> sem_elsif_stmt elif els
-                                                           | None			-> (match els with
-                                                                          | Some(es)	-> sem_else_stmt es
-                                                                          | None		-> () )))
-                                             | _       -> raise TypeError )
+    | S_simple s                           -> sem_simple s
+    | S_exit ()                            -> let rv = get_cur_return_value () in
+                                              if rv <> Null then raise TypeError
+                                              else ()
+    | S_return e                           -> let t = sem_expr e
+                                              and rv = get_cur_return_value () in
+                                              if rv <> t then raise TypeError
+                                              else ()
+    | S_if (e, stmts, elsif, els)          -> let var = sem_expr e in
+                                              (match var with
+                                               | TY_bool -> (List.iter sem_stmt stmts;
+                                                            (match elsif with
+                                                             | Some (elif) -> sem_elsif_stmt elif els
+                                                             | None			   -> (match els with
+                                                                              | Some(es) -> sem_else_stmt es
+                                                                              | None		 -> () )))
+                                               | _       -> raise TypeError )
     | S_for (simples1, e, simples2, stmts) -> List.iter sem_simple simples1;
                                               (let var = sem_expr e in
                                                 match var with
-                                                  | TY_bool -> List.iter sem_simple simples2;
-                                                               List.iter sem_stmt stmts
-                                                  | _       -> raise TypeError )
-
+                                                | TY_bool -> List.iter sem_simple simples2;
+                                                             List.iter sem_stmt stmts
+                                                | _       -> raise TypeError )
 
 and sem_elsif_stmt ast els =
   match ast with
@@ -189,17 +198,15 @@ and sem_elsif_stmt ast els =
                                  (match var with
                                   | TY_bool	-> (List.iter sem_stmt stmts;
                                                 (match elsif with
-                                                 | Some (elif)	-> sem_elsif_stmt elif els
-                                                 | None			-> (match els with
-                                                                | Some(es)	-> sem_else_stmt es
-                                                                | None		-> () )))
+                                                 | Some (elif) -> sem_elsif_stmt elif els
+                                                 | None			   -> (match els with
+                                                                  | Some(es) -> sem_else_stmt es
+                                                                  | None		 -> () )))
                                   | _       -> raise TypeError )
-
 
 and sem_else_stmt ast =
   match ast with
   | S_else stmts -> List.iter sem_stmt stmts
-
 
 and sem_func ast =
   match ast with

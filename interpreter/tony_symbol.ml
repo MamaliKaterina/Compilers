@@ -91,7 +91,7 @@ let initSymbolTable size =
   tab := H.create size;
   currentScope := the_outer_scope
 
-(*for us a scpe is a function... useful to keep return value*)
+(*for us a scope is a function... useful to keep return value*)
 let openScope rv =
   let sco = {
     sco_parent = Some !currentScope;
@@ -186,7 +186,7 @@ let newFunction id err =
       function_isForward = false;
       function_paramlist = [];
       function_redeflist = [];
-      function_result = TYPE_none;
+      function_result = Null;
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0
     } in
