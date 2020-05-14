@@ -16,15 +16,15 @@ let sem_formal f formal =
                                 (match parPas with
                                 | BY_val -> let rec callnewParam idlist =
                                               (match idlist with
-                                              | [id] -> newParameter true f PASS_BY_VALUE t (List.hd idlist)
-                                              | _    -> newParameter true f PASS_BY_VALUE t (List.hd idlist);
-                                                        callnewParam (List.tl idlist) )
+                                               | [id] -> let dummy = newParameter true f PASS_BY_VALUE t (List.hd idlist) in ()
+                                               | _    -> (let dummy = newParameter true f PASS_BY_VALUE t (List.hd idlist) in
+                                                          callnewParam (List.tl idlist)) )
                                             in callnewParam idlist
                                 | BY_ref -> let rec callnewParam idlist =
                                               (match idlist with
-                                              | [id] -> newParameter true f PASS_BY_REFERENCE t (List.hd idlist)
-                                              | _    -> newParameter true f PASS_BY_REFERENCE t (List.hd idlist);
-                                                        callnewParam (List.tl idlist) )
+                                               | [id] -> let dummy = newParameter true f PASS_BY_REFERENCE t (List.hd idlist) in ()
+                                               | _    -> (let dummy = newParameter true f PASS_BY_REFERENCE t (List.hd idlist) in
+                                                          callnewParam (List.tl idlist)) )
                                             in callnewParam idlist )
 (*List.iter (newParameter true f PASS_BY_VALUE t) (List.rev_map id_make slist)
   List.iter (newParameter true f PASS_BY_REFERENCE t) (List.rev_map id_make slist)*)
@@ -49,7 +49,7 @@ and sem_func_decl ast =
   match ast with
   | Func_decl (Header(tOp, nm, formals)) -> let id = id_make nm in
                                             let f = newFunction id true in
-                                              List.iter sem_formal f formals;
+                                              List.iter (sem_formal f) formals;
                                               forwardFunction f;
                                               (match tOp with
                                               | Some(t) -> endFunctionHeader f t
@@ -57,7 +57,13 @@ and sem_func_decl ast =
 
 and sem_var_def ast =
   match ast with
-  | Var_def(t, s_list)	-> List.iter (newVariable true t) (List.rev_map id_make s_list)
+  | Var_def(t, s_list)	-> let idlist = List.rev_map id_make s_list in
+                            let rec callnewParam idlist =
+                              (match idlist with
+                               | [id] -> let d = newVariable true t (List.hd idlist) in ()
+                               | _    -> (let d = newVariable true t (List.hd idlist) in
+                                           callnewParam (List.tl idlist)) )
+                            in callnewParam idlist
 
 and sem_def ast =
   match ast with
@@ -93,14 +99,14 @@ and sem_expr ast =
                              and t2 = sem_expr e2 in
                              (if t1 <> TY_bool || t2 <> TY_bool then raise TypeError
                               else TY_bool)
-  | E_new (a, e)          -> let a = sem_expr a
-                             and t = sem_expr e in
-                             (if (a <> TY_array || t <> TY_int) (*must be positive->runtime check!!!*) then raise TypeError
+  | E_new (a, e)          -> let t = sem_expr e in
+                             (if (a <> (TY_array(TY_int)) && a <> (TY_array(TY_char)) && a <> (TY_array(TY_bool))) || t <> TY_int then raise TypeError
                               else a )
   | E_nil 	              -> TY_list Null
   | E_is_nil e            -> let t = sem_expr e in
-                             (if t <> TY_list then raise TypeError
-                              else TY_bool )
+                            (match t with
+                             | TY_list(_) -> TY_bool
+                             | _          -> raise TypeError )
   | E_cons (e1, e2)       -> let v1 = sem_expr e1
                              and v2 = sem_expr e2 in
                              (match v2 with
@@ -119,7 +125,7 @@ and check_param exs pars =
   match exs, pars with
   | ([], [])       -> ()
   | (e::te, p::tp) -> let t = sem_expr e in
-                      (match p with
+                      (match p.entry_info with
                        | ENTRY_parameter(pi) -> if pi.parameter_type <> t then raise TypeError
                                                 else ()
                        | _ -> raise TypeError )
