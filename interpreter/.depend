@@ -1,0 +1,33 @@
+Error.cmo : Error.cmi
+Error.cmx : Error.cmi
+Error.cmi :
+Hashcons.cmo : Hashcons.cmi
+Hashcons.cmx : Hashcons.cmi
+Hashcons.cmi :
+Helping_types.cmo :
+Helping_types.cmx :
+Identifier.cmo : Hashcons.cmi Identifier.cmi
+Identifier.cmx : Hashcons.cmx Identifier.cmi
+Identifier.cmi :
+PrintAst.cmo : Helping_types.cmo
+PrintAst.cmx : Helping_types.cmx
+main.cmo : tony_symbol.cmo tony_sem.cmo tony_parser.cmi tony_lexer.cmi \
+    tony_ast.cmo tony_ActRec.cmo PrintAst.cmo Identifier.cmi \
+    Helping_types.cmo
+main.cmx : tony_symbol.cmx tony_sem.cmx tony_parser.cmx tony_lexer.cmx \
+    tony_ast.cmx tony_ActRec.cmx PrintAst.cmx Identifier.cmx \
+    Helping_types.cmx
+tony_ActRec.cmo : Helping_types.cmo
+tony_ActRec.cmx : Helping_types.cmx
+tony_ast.cmo : tony_ActRec.cmo Helping_types.cmo
+tony_ast.cmx : tony_ActRec.cmx Helping_types.cmx
+tony_lexer.cmo : tony_parser.cmi tony_lexer.cmi
+tony_lexer.cmx : tony_parser.cmx tony_lexer.cmi
+tony_lexer.cmi : tony_parser.cmi
+tony_parser.cmo : Helping_types.cmo tony_parser.cmi
+tony_parser.cmx : Helping_types.cmx tony_parser.cmi
+tony_parser.cmi : Helping_types.cmo
+tony_sem.cmo : tony_symbol.cmo Identifier.cmi Helping_types.cmo Error.cmi
+tony_sem.cmx : tony_symbol.cmx Identifier.cmx Helping_types.cmx Error.cmx
+tony_symbol.cmo : Identifier.cmi Helping_types.cmo Error.cmi
+tony_symbol.cmx : Identifier.cmx Helping_types.cmx Error.cmx

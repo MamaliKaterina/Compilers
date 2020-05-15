@@ -100,8 +100,8 @@ and sem_expr ast =
                              (if t1 <> TY_bool || t2 <> TY_bool then raise TypeError
                               else TY_bool)
   | E_new (a, e)          -> let t = sem_expr e in
-                             (if (a <> (TY_array(TY_int)) && a <> (TY_array(TY_char)) && a <> (TY_array(TY_bool))) || t <> TY_int then raise TypeError
-                              else a )
+                             (if not (a <> Null) || t <> TY_int then raise TypeError
+                              else TY_array a )
   | E_nil 	              -> TY_list Null
   | E_is_nil e            -> let t = sem_expr e in
                             (match t with
