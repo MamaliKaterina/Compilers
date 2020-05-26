@@ -1,0 +1,7 @@
+def simple_sum():
+	char c1, c2, c3
+	c2 := 'a'
+	c3 := 'b'
+	c1 := c2 + c3
+end
+<*expecting sem error for sum of non-integers*>
