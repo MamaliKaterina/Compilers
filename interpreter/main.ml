@@ -24,6 +24,6 @@ let main =
     | Match_failure (s,n1,n2) ->
         (Printf.eprintf "match error(%s, %d, %d)\n" s n1 n2; (*print_act_rec();*)
          exit 1)
-    | TypeErr x ->
-        (Printf.eprintf "semantic error %d\n" x;
+    | TypeError ->
+        (Printf.eprintf "semantic error\n";
          exit 1)

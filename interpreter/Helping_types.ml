@@ -28,7 +28,7 @@ type ast_expr =
   | E_char_const of char
   | E_un_plus of ast_expr
   | E_un_minus of ast_expr
-  | E_op of ast_expr * operator * ast_expr * int
+  | E_op of ast_expr * operator * ast_expr
   | E_lg_op of ast_expr * lg_operator * ast_expr
   | E_bool of bool_val
   | E_not of ast_expr
