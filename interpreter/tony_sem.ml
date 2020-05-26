@@ -84,7 +84,7 @@ and sem_expr ast =
   | E_un_minus e          -> let t = sem_expr e in
                              (if t <> TY_int then raise TypeError
                               else TY_int)
-  | E_op (e1, op, e2, line)     -> let t1 = sem_expr e1
+  | E_op (e1, op, e2, line) -> let t1 = sem_expr e1
                              and t2 = sem_expr e2 in
                              (if t1 <> TY_int || t2 <> TY_int then raise (TypeErr line)
                               else TY_int)
