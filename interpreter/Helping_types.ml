@@ -28,7 +28,7 @@ type ast_expr =
   | E_char_const of char
   | E_un_plus of ast_expr
   | E_un_minus of ast_expr
-  | E_op of ast_expr * operator * ast_expr
+  | E_op of ast_expr * operator * ast_expr * int
   | E_lg_op of ast_expr * lg_operator * ast_expr
   | E_bool of bool_val
   | E_not of ast_expr
@@ -122,8 +122,8 @@ let rec sizeOfType t =
   | TY_int     -> 2
   | TY_char    -> 1
   | TY_bool    -> 1
-  | TY_array a -> 4 (*size of system word length, use 4 for 32-bit architecture???*)
-  | TY_list l  -> 4 (*size of system word length, use 4 for 32-bit architecture???*)
+  | TY_array a -> 8 (*size of system word length, use 8 for 64-bit architecture???*)
+  | TY_list l  -> 8 (*size of system word length, use 8 for 64-bit architecture???*)
   | _          -> 0
 
 let rec equalType t1 t2 =

@@ -4,8 +4,8 @@ open Tony_symbol
 open Identifier
 open Tony_ActRec
 open Tony_ast
-open Tony_sem
 open PrintAst
+open Tony_sem
 
 
 let main =
@@ -22,4 +22,8 @@ let main =
     	  (Printf.eprintf "syntax error in line %d\n" lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum;
     	   exit 1)
     | Match_failure (s,n1,n2) ->
-        (Printf.eprintf "match error(%s, %d, %d)\n" s n1 n2; (*print_act_rec();*) exit 1)
+        (Printf.eprintf "match error(%s, %d, %d)\n" s n1 n2; (*print_act_rec();*)
+         exit 1)
+    | TypeErr x ->
+        (Printf.eprintf "semantic error %d\n" x;
+         exit 1)

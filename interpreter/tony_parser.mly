@@ -1,5 +1,6 @@
 %{
 	open Helping_types
+	let lexbuf = Lexing.from_channel stdin
 %}
 
 %token T_eof
@@ -183,11 +184,11 @@ expr : atom	{ E_atom $1 }
 	 | T_lbracket expr T_rbracket	{ $2 }
 	 | T_plus expr %prec NT_plus	{ E_un_plus $2 }
 	 | T_minus expr %prec NT_minus	{ E_un_minus $2 }
-	 | expr T_plus expr { E_op ($1, O_plus, $3) }
-	 | expr T_minus expr { E_op ($1, O_minus, $3) }
-	 | expr T_times expr { E_op ($1, O_times, $3) }
-	 | expr T_div expr { E_op ($1, O_div, $3) }
-	 | expr T_mod expr { E_op ($1, O_mod, $3) }
+	 | expr T_plus expr { E_op ($1, O_plus, $3, lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) }
+	 | expr T_minus expr { E_op ($1, O_minus, $3, lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) }
+	 | expr T_times expr { E_op ($1, O_times, $3, lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) }
+	 | expr T_div expr { E_op ($1, O_div, $3, lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) }
+	 | expr T_mod expr { E_op ($1, O_mod, $3, lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) }
 	 | expr T_eq expr { E_lg_op ($1, LO_eq, $3) }
 	 | expr T_dif expr { E_lg_op ($1, LO_dif, $3) }
 	 | expr T_less expr { E_lg_op ($1, LO_less, $3) }

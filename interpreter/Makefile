@@ -29,7 +29,7 @@ INCLUDES=
 
 #FILES=Helping_types.cmo tony_lexer.cmo tony_parser.cmo tony_ActRec.cmo tony_ast.cmo PrintAst.cmo main.cmo
 
-default: symbtest$(EXE)
+default: tonyc$(EXE)
 
 symbtest$(EXE): $(filter-out Lexer.cmo Parser.cmo,$(CMOFILES))
 	$(OCAMLC) -o $@ $^
