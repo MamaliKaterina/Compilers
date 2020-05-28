@@ -18,6 +18,6 @@ let main =
     | Match_failure (s,n1,n2) ->
         (Printf.eprintf "match error(%s, %d, %d)\n" s n1 n2;
          exit 1)
-    | TypeErr x ->
-        (Printf.eprintf "Semantic error in line %d\n" x;
+    | TypeError line ->
+        (Printf.eprintf "Semantic error in line %d\n" line;
          exit 1)

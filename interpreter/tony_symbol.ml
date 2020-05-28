@@ -179,7 +179,7 @@ let newFunction id err =
       e
     | _ ->
       if err then
-        error "duplicate identifier: %a" pretty_id id;
+        error "duplicate identifier %a" pretty_id id;
       raise Exit
   with Not_found ->
     let inf = {

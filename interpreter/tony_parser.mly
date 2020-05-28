@@ -167,8 +167,8 @@ simple_list : simple other_simple	{ $1::$2 }
 other_simple : /*nothing*/	{ [] }
 			 | T_comma simple other_simple	{ $2::$3 }
 
-call : T_var T_lbracket T_rbracket	{ C_call ($1, []) }
-	 | T_var T_lbracket expr other_expr T_rbracket	{ C_call ($1, $3::$4) }
+call : T_var T_lbracket T_rbracket	{ C_call ($1, [], (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | T_var T_lbracket expr other_expr T_rbracket	{ C_call ($1, $3::$4, (Parsing.rhs_start_pos 1).pos_lnum) }
 
 other_expr : /*nothing*/	{ [] }
 		   | T_comma expr other_expr	{ $2::$3 }
@@ -182,30 +182,30 @@ expr : atom	{ E_atom $1 }
 	 | T_int_const	{ E_int_const $1 }
 	 | T_char_const	{ E_char_const $1 }
 	 | T_lbracket expr T_rbracket	{ $2 }
-	 | T_plus expr %prec NT_plus	{ E_un_plus $2 }
-	 | T_minus expr %prec NT_minus	{ E_un_minus $2 }
+	 | T_plus expr %prec NT_plus	{ E_un_plus ($2, (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | T_minus expr %prec NT_minus	{ E_un_minus ($2, (Parsing.rhs_start_pos 1).pos_lnum) }
 	 | expr T_plus expr { E_op ($1, O_plus, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	 | expr T_minus expr { E_op ($1, O_minus, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	 | expr T_times expr { E_op ($1, O_times, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	 | expr T_div expr { E_op ($1, O_div, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	 | expr T_mod expr { E_op ($1, O_mod, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
-	 | expr T_eq expr { E_lg_op ($1, LO_eq, $3) }
-	 | expr T_dif expr { E_lg_op ($1, LO_dif, $3) }
-	 | expr T_less expr { E_lg_op ($1, LO_less, $3) }
-	 | expr T_greater expr { E_lg_op ($1, LO_greater, $3) }
-	 | expr T_less_eq expr { E_lg_op ($1, LO_less_eq, $3) }
-	 | expr T_greater_eq expr { E_lg_op ($1, LO_greater_eq, $3) }
+	 | expr T_eq expr { E_lg_op ($1, LO_eq, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | expr T_dif expr { E_lg_op ($1, LO_dif, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | expr T_less expr { E_lg_op ($1, LO_less, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | expr T_greater expr { E_lg_op ($1, LO_greater, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | expr T_less_eq expr { E_lg_op ($1, LO_less_eq, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | expr T_greater_eq expr { E_lg_op ($1, LO_greater_eq, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	 | T_true	{ E_bool True }
 	 | T_false	{ E_bool False }
-	 | T_not expr	{ E_not $2 }
-	 | expr T_and expr	{ E_and_or ($1, And, $3) }
-	 | expr T_or expr	{ E_and_or ($1, Or, $3) }
-	 | T_new ttype T_lsqbracket expr T_rsqbracket	{ E_new ($2, $4) }
+	 | T_not expr	{ E_not ($2, (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | expr T_and expr	{ E_and_or ($1, And, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | expr T_or expr	{ E_and_or ($1, Or, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | T_new ttype T_lsqbracket expr T_rsqbracket	{ E_new ($2, $4, (Parsing.rhs_start_pos 1).pos_lnum) }
 	 | T_nil	{ E_nil }
-	 | T_is_nil T_lbracket expr T_rbracket	{ E_is_nil $3 }
-	 | expr T_cons expr	{ E_cons ($1, $3) }
-	 | T_head T_lbracket expr T_rbracket	{ E_head $3 }
-	 | T_tail T_lbracket expr T_rbracket	{ E_tail $3 }
+	 | T_is_nil T_lbracket expr T_rbracket	{ E_is_nil ($3, (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | expr T_cons expr	{ E_cons ($1, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
+	 | T_head T_lbracket expr T_rbracket	{ E_head ($3, (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | T_tail T_lbracket expr T_rbracket	{ E_tail ($3, (Parsing.rhs_start_pos 1).pos_lnum) }
 
 /*oper : T_plus { O_plus } | T_minus { O_minus } | T_times { O_times } | T_div { O_div } | T_mod { O_mod }
 

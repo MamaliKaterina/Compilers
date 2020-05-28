@@ -1,12 +1,12 @@
-type helping_type =
+(*type helping_type =
 	| Empty
 	| M_int of int
 	| M_char of char
 	| M_bool of bool
 	| M_array of helping_type array ref
 	| M_list of helping_type list ref
-	| M_name of string
-
+  | M_name of string
+*)
 type typ = Null | TY_int | TY_bool| TY_char | TY_array of typ | TY_list of typ
 type paramPas = BY_val | BY_ref
 type operator = O_plus | O_minus | O_times | O_div | O_mod
@@ -26,21 +26,21 @@ type ast_expr =
   | E_atom of ast_atom
   | E_int_const of int
   | E_char_const of char
-  | E_un_plus of ast_expr
-  | E_un_minus of ast_expr
+  | E_un_plus of ast_expr * int
+  | E_un_minus of ast_expr * int
   | E_op of ast_expr * operator * ast_expr * int
-  | E_lg_op of ast_expr * lg_operator * ast_expr
+  | E_lg_op of ast_expr * lg_operator * ast_expr * int
   | E_bool of bool_val
-  | E_not of ast_expr
-  | E_and_or of ast_expr * and_or * ast_expr
-  | E_new of typ * ast_expr
+  | E_not of ast_expr * int
+  | E_and_or of ast_expr * and_or * ast_expr * int
+  | E_new of typ * ast_expr * int
   | E_nil
-  | E_is_nil of ast_expr
-  | E_cons of ast_expr * ast_expr
-  | E_head of ast_expr
-  | E_tail of ast_expr
+  | E_is_nil of ast_expr * int
+  | E_cons of ast_expr * ast_expr * int
+  | E_head of ast_expr * int
+  | E_tail of ast_expr * int
 
-and ast_call = C_call of string * ast_expr list
+and ast_call = C_call of string * ast_expr list * int
 
 and ast_atom =
   | A_var of string
@@ -71,7 +71,7 @@ and ast_def =
   | F_decl of ast_func_decl
   | V_def of ast_var_def
 
-let equal v1 v2 =
+(*let equal v1 v2 =
 	match v1, v2 with
 	| (M_int(n1), M_int(n2))   -> M_bool (n1 = n2)
 	| (M_char(c1), M_char(c2)) -> M_bool (c1 = c2)
@@ -105,9 +105,31 @@ let greater_eq v1 v2 =
 	match v1, v2 with
 	| (M_int(n1), M_int(n2))   -> M_bool (n1 >= n2)
 	| (M_char(c1), M_char(c2)) -> M_bool (c1 >= c2)
-	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 >= b2)
+  | (M_bool(b1), M_bool(b2)) -> M_bool (b1 >= b2)
+*)
+let op_as_string op =
+  match op with
+  | O_plus  -> "+"
+  | O_minus -> "-"
+  | O_times -> "*"
+  | O_div   -> "/"
+  | O_mod   -> "mod"
 
-let rec print_helping_type t =
+let lg_as_string lg =
+  match lg with
+  | LO_eq         -> "="
+  | LO_dif        -> "<>"
+  | LO_less       -> "<"
+  | LO_greater    -> ">"
+  | LO_less_eq     -> "<="
+  | LO_greater_eq -> ">="
+
+let andor_as_string ao =
+  match ao with
+  | And -> "and"
+  | Or  -> "or"
+
+(*let rec print_helping_type t =
 	match t with
 	| Empty			  -> Printf.eprintf " Empty "
 	| M_int (n)		-> Printf.eprintf " %d " n
@@ -116,7 +138,7 @@ let rec print_helping_type t =
 	| M_array (a)	-> Printf.eprintf "{ "; Array.iter print_helping_type !a; Printf.eprintf " }"
 	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type !l; Printf.eprintf " ]"
 	| M_name (s)	-> Printf.eprintf " %s " s
-
+*)
 let rec sizeOfType t =
   match t with
   | TY_int     -> 2

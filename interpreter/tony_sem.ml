@@ -3,8 +3,9 @@ open Error
 open Helping_types
 open Tony_symbol
 
-exception TypeError
-exception TypeErr of int
+exception TypeErr (*when done delete this*)
+exception UnknownError (*use this when the error is unexpected and cannot understand why came up*)
+exception TypeError of int
 
 let invalid_log_op t1 t2 =
   match t1, t2 with
@@ -27,8 +28,6 @@ let sem_formal f formal =
                                                | _    -> (let dummy = newParameter true f PASS_BY_REFERENCE t (List.hd idlist) in
                                                           callnewParam (List.tl idlist)) )
                                             in callnewParam idlist )
-(*List.iter (newParameter true f PASS_BY_VALUE t) (List.rev_map id_make slist)
-  List.iter (newParameter true f PASS_BY_REFERENCE t) (List.rev_map id_make slist)*)
 
 let rec sem_func_def ast =
   match ast with
@@ -73,77 +72,104 @@ and sem_def ast =
   | V_def vdef   -> sem_var_def vdef
 
 and sem_expr ast =
-  (*problem... it will return the typ of expression but nothing in case of TypeError->compiler fault*)
+  (*cannot avoid raising an exception; otherwise, compiler throws error expecting type typ*)
   match ast with
-  | E_atom a              -> sem_atom a
-  | E_int_const n         -> TY_int
-  | E_char_const c        -> TY_char
-  | E_un_plus e           -> let t = sem_expr e in
-                             (if t <> TY_int then raise TypeError
-                              else TY_int)
-  | E_un_minus e          -> let t = sem_expr e in
-                             (if t <> TY_int then raise TypeError
-                              else TY_int)
-  | E_op (e1, op, e2, line) -> let t1 = sem_expr e1
-                             and t2 = sem_expr e2 in
-                             (if t1 <> TY_int || t2 <> TY_int then raise (TypeErr line)
-                              else TY_int)
-  | E_lg_op (e1, op, e2)  -> let t1 = sem_expr e1
-                             and t2 = sem_expr e2 in
-                             (if invalid_log_op t1 t2 then raise TypeError
-                              else TY_bool)
-  | E_bool b              -> TY_bool
-  | E_not e               -> let t = sem_expr e in
-                             (if t <> TY_bool then raise TypeError
-                              else TY_bool)
-  | E_and_or (e1, ao, e2) -> let t1 = sem_expr e1
-                             and t2 = sem_expr e2 in
-                             (if t1 <> TY_bool || t2 <> TY_bool then raise TypeError
-                              else TY_bool)
-  | E_new (a, e)          -> let t = sem_expr e in
-                             (if not (a <> Null) || t <> TY_int then raise TypeError
-                              else TY_array a )
-  | E_nil 	              -> TY_list Null
-  | E_is_nil e            -> let t = sem_expr e in
-                            (match t with
-                             | TY_list(_) -> TY_bool
-                             | _          -> raise TypeError )
-  | E_cons (e1, e2)       -> let v1 = sem_expr e1
-                             and v2 = sem_expr e2 in
-                             (match v2 with
-                              | TY_list(v1) -> v2
-                              | _           -> raise TypeError )
-  | E_head e              -> let v = sem_expr e in
-                             (match v with
-                              | TY_list(l) -> l
-                              | _          -> raise TypeError )
-  | E_tail e              -> let v = sem_expr e in
-                             (match v with
-                              | TY_list(l) -> v
-                              | _          -> raise TypeError )
+  | E_atom a                    -> sem_atom a
+  | E_int_const n               -> TY_int
+  | E_char_const c              -> TY_char
+  | E_un_plus (e, line)         -> let t = sem_expr e in
+                                   (if t <> TY_int then (error "operator '+' expected integer as operand";
+                                                         raise (TypeError line))
+                                    else TY_int)
+  | E_un_minus (e, line)        -> let t = sem_expr e in
+                                   (if t <> TY_int then (error "operator '-' expected integer as operand";
+                                                         raise (TypeError line))
+                                    else TY_int)
+  | E_op (e1, op, e2, line)     -> let t1 = sem_expr e1
+                                   and t2 = sem_expr e2 in
+                                   (if t1 <> TY_int || t2 <> TY_int then
+                                      (let opString = op_as_string op in
+                                       error "operator '%s' expected integers as operands" opString;
+                                       raise (TypeError line))
+                                    else TY_int)
+  | E_lg_op (e1, op, e2, line)  -> let t1 = sem_expr e1
+                                   and t2 = sem_expr e2 in
+                                   (if invalid_log_op t1 t2 then
+                                      (let opString = lg_as_string op in
+                                       error "operator '%s' expected operands of same primitive type" opString;
+                                       raise (TypeError line))
+                                    else TY_bool)
+  | E_bool b                    -> TY_bool
+  | E_not (e, line)             -> let t = sem_expr e in
+                                   (if t <> TY_bool then (error "operator 'not' expected boolean as operand";
+                                                          raise (TypeError line))
+                                    else TY_bool)
+  | E_and_or (e1, ao, e2, line) -> let t1 = sem_expr e1
+                                   and t2 = sem_expr e2 in
+                                   (if t1 <> TY_bool || t2 <> TY_bool then
+                                      (let opString = andor_as_string ao in
+                                       error "operator '%s' expected booleans as operands" opString;
+                                       raise (TypeError line))
+                                    else TY_bool)
+  | E_new (a, e, line)          -> let t = sem_expr e in
+                                   (if not (a <> Null) || t <> TY_int then
+                                      (error "operator 'new' expected a valid type and an integer as operands";
+                                      raise (TypeError line))
+                                    else TY_array a )
+  | E_nil                       -> TY_list Null
+  | E_is_nil (e, line)          -> let t = sem_expr e in
+                                   (match t with
+                                    | TY_list(_) -> TY_bool
+                                    | _          -> error "operator 'nil?' expected operand of type list";
+                                                    raise (TypeError line) )
+  | E_cons (e1, e2, line)       -> let v1 = sem_expr e1
+                                   and v2 = sem_expr e2 in
+                                   (match v2 with
+                                    | TY_list(v) -> if v <> v1 then (error "type of list of right operand of operator '#' \
+                                                                            must be of same type as left operand";
+                                                                     raise (TypeError line))
+                                                    else v2
+                                    | _          -> error "operator '#' expected a valid type and a list as operands";
+                                                     raise (TypeError line) )
+  | E_head (e, line)            -> let v = sem_expr e in
+                                   (match v with
+                                    | TY_list(l) -> l
+                                    | _          -> error "operator 'head' expected operand of type list";
+                                                    raise (TypeError line) )
+  | E_tail (e, line)            -> let v = sem_expr e in
+                                   (match v with
+                                    | TY_list(l) -> v
+                                    | _          -> error "operator 'nil?' expected operand of type list";
+                                                    raise (TypeError line) )
 
-and check_param exs pars =
+and check_param exs pars fname line =
   match exs, pars with
   | ([], [])       -> ()
   | (e::te, p::tp) -> let t = sem_expr e in
                       (match p.entry_info with
-                       | ENTRY_parameter(pi) -> if pi.parameter_type <> t then raise TypeError
-                                                else ()
-                       | _ -> raise TypeError )
-  | _              -> raise TypeError
+                       | ENTRY_parameter(pi) -> if pi.parameter_type <> t then
+                                                  (error "parameter type in call of function '%s' inconsistent \
+                                                          with type in function definition" fname;
+                                                   raise (TypeError line))
+                                                else check_param te tp fname line
+                       | _                   -> raise UnknownError )
+  | _              -> error "fewer or more parameters than expected in call of function '%s'" fname;
+                      raise (TypeError line)
 
 and sem_call c =
   match c with
-  | C_call(nm, exprs) -> let id = id_make nm in
-                         let e = lookupEntry id LOOKUP_ALL_SCOPES true in
-                         (match e.entry_info with
-                         | ENTRY_function(f) -> if not (f.function_isForward) then
-                                                  begin
-                                                    check_param exprs f.function_paramlist;
-                                                    f.function_result
-                                                  end
-                                                else raise TypeError
-                         | _ -> raise TypeError )
+  | C_call(nm, exprs, line) -> let id = id_make nm in
+                               let e = lookupEntry id LOOKUP_ALL_SCOPES true in
+                               (match e.entry_info with
+                                | ENTRY_function(f) -> if not (f.function_isForward) then
+                                                       begin
+                                                         check_param exprs f.function_paramlist nm line;
+                                                         f.function_result
+                                                       end
+                                                       else (error "function '%s' in not yet defined" nm;
+                                                             raise (TypeError line))
+                                | _ -> error "identifier '%s' in not a function" nm;
+                                       raise (TypeError line) )
 
 and sem_atom ast =
   (*must check: -the atoms are well-defined
@@ -155,13 +181,13 @@ and sem_atom ast =
                            | ENTRY_variable(v)  -> v.variable_type
                            | ENTRY_parameter(v) -> v.parameter_type
                            | ENTRY_temporary(v) -> v.temporary_type
-                           | _                  -> raise TypeError )
+                           | _                  -> raise TypeErr )
   | A_string_const str -> TY_array TY_char
   | A_atom (a, e)      -> let v = sem_atom a
                           and n = sem_expr e in
                           (match v, n with
                            | (TY_array(t), TY_int) -> t
-                           | _                     -> raise TypeError )
+                           | _                     -> raise TypeErr )
   | A_call c           -> sem_call c
 
 and sem_simple ast =
@@ -169,19 +195,19 @@ and sem_simple ast =
   | S_skip ()       -> ()
   | S_assign (a, e) -> let x = sem_atom a
                        and y = sem_expr e in (*it will return the typ of y*)
-                       if x <> y then raise TypeError
+                       if x <> y then raise TypeErr
   | S_call c        -> let v = sem_call c	in
-                       if v <> Null then raise TypeError
+                       if v <> Null then raise TypeErr
 
 and sem_stmt ast =
     match ast with
     | S_simple s                           -> sem_simple s
     | S_exit ()                            -> let rv = get_cur_return_value () in
-                                              if rv <> Null then raise TypeError
+                                              if rv <> Null then raise TypeErr
                                               else ()
     | S_return e                           -> let t = sem_expr e
                                               and rv = get_cur_return_value () in
-                                              if rv <> t then raise TypeError
+                                              if rv <> t then raise TypeErr
                                               else ()
     | S_if (e, stmts, elsif, els)          -> let var = sem_expr e in
                                               (match var with
@@ -191,13 +217,13 @@ and sem_stmt ast =
                                                              | None			   -> (match els with
                                                                               | Some(es) -> sem_else_stmt es
                                                                               | None		 -> () )))
-                                               | _       -> raise TypeError )
+                                               | _       -> raise TypeErr )
     | S_for (simples1, e, simples2, stmts) -> List.iter sem_simple simples1;
                                               (let var = sem_expr e in
                                                 match var with
                                                 | TY_bool -> List.iter sem_simple simples2;
                                                              List.iter sem_stmt stmts
-                                                | _       -> raise TypeError )
+                                                | _       -> raise TypeErr )
 
 and sem_elsif_stmt ast els =
   match ast with
@@ -209,7 +235,7 @@ and sem_elsif_stmt ast els =
                                                  | None			   -> (match els with
                                                                   | Some(es) -> sem_else_stmt es
                                                                   | None		 -> () )))
-                                  | _       -> raise TypeError )
+                                  | _       -> raise TypeErr )
 
 and sem_else_stmt ast =
   match ast with
@@ -219,6 +245,6 @@ and sem_func ast =
   match ast with
   | Func_def (Header(None, _, []), defs, stmts) -> List.iter sem_def defs;
                                                    List.iter sem_stmt stmts
-  | _ -> raise TypeError (*maybe create another kind of error...*)
+  | _ -> raise TypeErr (*maybe create another kind of error...*)
 
 let sem ast = sem_func ast
