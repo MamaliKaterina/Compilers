@@ -147,19 +147,20 @@ func_decl : T_decl header	{ Func_decl $2 }
 var_def : ttype T_var other_id	{ Var_def ($1, $2::$3) }
 
 stmt : simple	{ S_simple $1 }
-	 | T_exit	{ S_exit () }
-	 | T_return expr	{ S_return $2 }
-	 | T_if expr T_colon multi_stmt elsif_stmt else_stmt T_end	{ S_if ($2, $4, $5, $6) }
-	 | T_for simple_list T_semicolon expr T_semicolon simple_list T_colon multi_stmt T_end	{ S_for ($2, $4, $6, $8) }
+	 | T_exit	{ S_exit (Parsing.rhs_start_pos 1).pos_lnum }
+	 | T_return expr	{ S_return ($2, (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | T_if expr T_colon multi_stmt elsif_stmt else_stmt T_end	{ S_if ($2, $4, $5, $6, (Parsing.rhs_start_pos 1).pos_lnum) }
+	 | T_for simple_list T_semicolon expr T_semicolon simple_list T_colon multi_stmt T_end
+	 			{ S_for ($2, $4, $6, $8, (Parsing.rhs_start_pos 1).pos_lnum) }
 
 elsif_stmt : /*nothing*/	{ None }
-		  | T_elsif expr T_colon multi_stmt elsif_stmt	{ Some (S_elsif ($2, $4, $5)) }
+		  | T_elsif expr T_colon multi_stmt elsif_stmt	{ Some (S_elsif ($2, $4, $5, (Parsing.rhs_start_pos 1).pos_lnum)) }
 
 else_stmt : /*nothing*/	{ None }
 		  | T_else T_colon multi_stmt	{ Some (S_else $3) }
 
 simple : T_skip	{ S_skip () }
-	   | atom T_assign expr	{ S_assign ($1, $3) }
+	   | atom T_assign expr	{ S_assign ($1, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	   | call	{ S_call $1 }
 
 simple_list : simple other_simple	{ $1::$2 }
@@ -173,9 +174,9 @@ call : T_var T_lbracket T_rbracket	{ C_call ($1, [], (Parsing.rhs_start_pos 1).p
 other_expr : /*nothing*/	{ [] }
 		   | T_comma expr other_expr	{ $2::$3 }
 
-atom : T_var	{ A_var $1 }
+atom : T_var	{ A_var ($1, (Parsing.rhs_start_pos 1).pos_lnum) }
 	 | T_string_const	{ A_string_const $1 }
-	 | atom T_lsqbracket expr T_rsqbracket	{ A_atom ($1, $3) }
+	 | atom T_lsqbracket expr T_rsqbracket	{ A_atom ($1, $3, (Parsing.rhs_start_pos 1).pos_lnum) }
 	 | call	{ A_call $1 }
 
 expr : atom	{ E_atom $1 }

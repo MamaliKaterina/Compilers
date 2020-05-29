@@ -133,7 +133,7 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    error "duplicate identifier %a" pretty_id id;
+    error "duplicate identifier '%a'" pretty_id id;
     e
 
 let lookupEntry id how err =
@@ -152,7 +152,7 @@ let lookupEntry id how err =
     try
       lookup ()
     with Not_found ->
-      error "unknown identifier %a (first occurrence)"
+      error "unknown identifier '%a' (first occurrence)"
         pretty_id id;
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
@@ -179,7 +179,7 @@ let newFunction id err =
       e
     | _ ->
       if err then
-        error "duplicate identifier %a" pretty_id id;
+        error "duplicate identifier '%a'" pretty_id id;
       raise Exit
   with Not_found ->
     let inf = {

@@ -3,7 +3,6 @@ open Error
 open Helping_types
 open Tony_symbol
 
-exception TypeErr (*when done delete this*)
 exception UnknownError (*use this when the error is unexpected and cannot understand why came up*)
 exception TypeError of int
 
@@ -175,67 +174,77 @@ and sem_atom ast =
   (*must check: -the atoms are well-defined
                 -return the correct typ for each atom*)
   match ast with
-  | A_var v            -> let id = id_make v in
-                          let e = lookupEntry id LOOKUP_ALL_SCOPES true in
-                          (match e.entry_info with
-                           | ENTRY_variable(v)  -> v.variable_type
-                           | ENTRY_parameter(v) -> v.parameter_type
-                           | ENTRY_temporary(v) -> v.temporary_type
-                           | _                  -> raise TypeErr )
-  | A_string_const str -> TY_array TY_char
-  | A_atom (a, e)      -> let v = sem_atom a
-                          and n = sem_expr e in
-                          (match v, n with
-                           | (TY_array(t), TY_int) -> t
-                           | _                     -> raise TypeErr )
-  | A_call c           -> sem_call c
+  | A_var (v, line)     -> let id = id_make v in
+                           let e = lookupEntry id LOOKUP_ALL_SCOPES true in
+                           (match e.entry_info with
+                            | ENTRY_variable(v)  -> v.variable_type
+                            | ENTRY_parameter(v) -> v.parameter_type
+                            | ENTRY_temporary(v) -> v.temporary_type
+                            | _                  -> error "identifier '%s' is neither variable nor parameter" v;
+                                                    raise (TypeError line) )
+  | A_string_const str  -> TY_array TY_char
+  | A_atom (a, e, line) -> let v = sem_atom a
+                           and n = sem_expr e in
+                           (match v, n with
+                            | (TY_array(t), TY_int) -> t
+                            | _                     -> error "identifier is not an array"; print_typ v; (*print_typ only for debugging*)
+                                                       raise (TypeError line) )
+  | A_call c            -> sem_call c
 
 and sem_simple ast =
   match ast with
-  | S_skip ()       -> ()
-  | S_assign (a, e) -> let x = sem_atom a
-                       and y = sem_expr e in (*it will return the typ of y*)
-                       if x <> y then raise TypeErr
-  | S_call c        -> let v = sem_call c	in
-                       if v <> Null then raise TypeErr
+  | S_skip ()             -> ()
+  | S_assign (a, e, line) -> let x = sem_atom a
+                             and y = sem_expr e in (*it will return the typ of y*)
+                             if x <> y then (error "lvalue and rvalue in assignment are not of the same type";
+                                             raise (TypeError line)) else Printf.eprintf "%d " line; print_typ x; (*else statement only for debugging*)
+  | S_call c              -> let v = sem_call c	in
+                             if v <> Null then raise UnknownError
 
 and sem_stmt ast =
     match ast with
-    | S_simple s                           -> sem_simple s
-    | S_exit ()                            -> let rv = get_cur_return_value () in
-                                              if rv <> Null then raise TypeErr
-                                              else ()
-    | S_return e                           -> let t = sem_expr e
-                                              and rv = get_cur_return_value () in
-                                              if rv <> t then raise TypeErr
-                                              else ()
-    | S_if (e, stmts, elsif, els)          -> let var = sem_expr e in
-                                              (match var with
-                                               | TY_bool -> (List.iter sem_stmt stmts;
-                                                            (match elsif with
-                                                             | Some (elif) -> sem_elsif_stmt elif els
-                                                             | None			   -> (match els with
-                                                                              | Some(es) -> sem_else_stmt es
-                                                                              | None		 -> () )))
-                                               | _       -> raise TypeErr )
-    | S_for (simples1, e, simples2, stmts) -> List.iter sem_simple simples1;
-                                              (let var = sem_expr e in
-                                                match var with
-                                                | TY_bool -> List.iter sem_simple simples2;
-                                                             List.iter sem_stmt stmts
-                                                | _       -> raise TypeErr )
+    | S_simple s                                 -> sem_simple s
+    | S_exit line                                -> let rv = get_cur_return_value () in
+                                                    if rv <> Null then
+                                                      (error "exit command can only be used in void functions";
+                                                       raise (TypeError line))
+                                                    else ()
+    | S_return (e, line)                         -> let t = sem_expr e
+                                                    and rv = get_cur_return_value () in
+                                                    if rv <> t then
+                                                      (error "type of object to be returned incompatible with return type of function";
+                                                       raise (TypeError line))
+                                                    else ()
+    | S_if (e, stmts, elsif, els, line)          -> let var = sem_expr e in
+                                                    (match var with
+                                                     | TY_bool -> (List.iter sem_stmt stmts;
+                                                                  (match elsif with
+                                                                   | Some (elif) -> sem_elsif_stmt elif els
+                                                                   | None			   -> (match els with
+                                                                                    | Some(es) -> sem_else_stmt es
+                                                                                    | None		 -> () )))
+                                                     | _       -> error "condition in if-statement must be evaluated as boolean";
+                                                                  raise (TypeError line) )
+    | S_for (simples1, e, simples2, stmts, line) -> List.iter sem_simple simples1;
+                                                    (let var = sem_expr e in
+                                                     match var with
+                                                     | TY_bool -> List.iter sem_simple simples2;
+                                                                  List.iter sem_stmt stmts
+                                                     | _       -> error "condition in for-statement must be evaluated as boolean";
+                                                                  raise (TypeError line) )
 
 and sem_elsif_stmt ast els =
   match ast with
-  | S_elsif (e, stmts, elsif) -> let var = sem_expr e in
-                                 (match var with
-                                  | TY_bool	-> (List.iter sem_stmt stmts;
-                                                (match elsif with
-                                                 | Some (elif) -> sem_elsif_stmt elif els
-                                                 | None			   -> (match els with
-                                                                  | Some(es) -> sem_else_stmt es
-                                                                  | None		 -> () )))
-                                  | _       -> raise TypeErr )
+  | S_elsif (e, stmts, elsif, line) -> let var = sem_expr e in
+                                       (match var with
+                                        | TY_bool	-> (List.iter sem_stmt stmts;
+                                                      (match elsif with
+                                                       | Some (elif) -> sem_elsif_stmt elif els
+                                                       | None			   -> (match els with
+                                                                        | Some(es) -> sem_else_stmt es
+                                                                        | None		 -> () )))
+                                        | _       -> error "condition in elsif-statement must be evaluated as boolean";
+                                                     raise (TypeError line) )
 
 and sem_else_stmt ast =
   match ast with
@@ -245,6 +254,6 @@ and sem_func ast =
   match ast with
   | Func_def (Header(None, _, []), defs, stmts) -> List.iter sem_def defs;
                                                    List.iter sem_stmt stmts
-  | _ -> raise TypeErr (*maybe create another kind of error...*)
+  | _ -> error "main function must be void and without arguments"
 
 let sem ast = sem_func ast

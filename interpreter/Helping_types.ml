@@ -43,24 +43,24 @@ type ast_expr =
 and ast_call = C_call of string * ast_expr list * int
 
 and ast_atom =
-  | A_var of string
+  | A_var of string * int
   | A_string_const of string
-  | A_atom of ast_atom * ast_expr
+  | A_atom of ast_atom * ast_expr * int
   | A_call of ast_call
 
 type ast_simple =
   | S_skip of unit
-  | S_assign of ast_atom * ast_expr
+  | S_assign of ast_atom * ast_expr * int
   | S_call of ast_call
 
 type ast_stmt =
   | S_simple of ast_simple
-  | S_exit of unit
-  | S_return of ast_expr
-  | S_if of ast_expr * ast_stmt list * ast_elsif_stmt option * ast_else_stmt option
-  | S_for of ast_simple list * ast_expr * ast_simple list * ast_stmt list
+  | S_exit of int
+  | S_return of ast_expr * int
+  | S_if of ast_expr * ast_stmt list * ast_elsif_stmt option * ast_else_stmt option * int
+  | S_for of ast_simple list * ast_expr * ast_simple list * ast_stmt list * int
 
-and ast_elsif_stmt = S_elsif of ast_expr * ast_stmt list * ast_elsif_stmt option
+and ast_elsif_stmt = S_elsif of ast_expr * ast_stmt list * ast_elsif_stmt option * int
 
 and ast_else_stmt = S_else of ast_stmt list
 
@@ -139,6 +139,16 @@ let andor_as_string ao =
 	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type !l; Printf.eprintf " ]"
 	| M_name (s)	-> Printf.eprintf " %s " s
 *)
+
+let rec print_typ t =
+  match t with
+	| Null			   -> Printf.eprintf "Null\n"
+	| TY_int		   -> Printf.eprintf "TY_int\n"
+	| TY_char	     -> Printf.eprintf "TY_char\n"
+	| TY_bool	     -> Printf.eprintf "TY_bool\n"
+	| TY_array (a) -> Printf.eprintf "TY_array of "; print_typ a
+	| TY_list (l)	 -> Printf.eprintf "TY_list of "; print_typ l
+
 let rec sizeOfType t =
   match t with
   | TY_int     -> 2
