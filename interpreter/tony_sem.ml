@@ -32,12 +32,13 @@ let rec sem_func_def ast =
   match ast with
   | Func_def (Header(tOp, nm, formals), defs, stmts) -> let id = id_make nm in
                                                         let f = newFunction id true in
-                                                          List.iter (sem_formal f) formals;
-                                                          (match tOp with
-                                                           | Some(t) -> endFunctionHeader f t;
-                                                                        openScope t
-                                                           | None    -> endFunctionHeader f Null;
-                                                                        openScope Null );
+                                                        (match tOp with
+                                                         | Some(t) -> openScope t;
+                                                                      List.iter (sem_formal f) formals;
+                                                                      endFunctionHeader f t
+                                                         | None    -> openScope Null;
+                                                                      List.iter (sem_formal f) formals;
+                                                                      endFunctionHeader f Null );
                                                           (*maybe announce parameters as variables here*)
                                                           List.iter sem_def defs;
                                                           List.iter sem_stmt stmts;
@@ -197,7 +198,8 @@ and sem_simple ast =
   | S_assign (a, e, line) -> let x = sem_atom a
                              and y = sem_expr e in (*it will return the typ of y*)
                              if x <> y then (error "lvalue and rvalue in assignment are not of the same type";
-                                             raise (TypeError line)) else Printf.eprintf "%d " line; print_typ x; (*else statement only for debugging*)
+                                             raise (TypeError line))
+                             (*else Printf.eprintf "%d " line; print_typ x; //else statement only for debugging*)
   | S_call c              -> let v = sem_call c	in
                              if v <> Null then raise UnknownError
 
