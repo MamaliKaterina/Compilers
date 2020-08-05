@@ -27,7 +27,8 @@ type scope = {
 
 and variable_info = {
   variable_type   : typ;
-  variable_offset : int
+  variable_offset : int;
+  variable_value  : Llvm.llvalue option
 }
 
 and function_info = {
@@ -160,11 +161,12 @@ let lookupEntry id how err =
   else
     lookup ()
 
-let newVariable err typ id =
+let newVariable err typ id val =
   !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
   let inf = {
     variable_type = typ;
-    variable_offset = !currentScope.sco_negofs
+    variable_offset = !currentScope.sco_negofs;
+    variable_value = val
   } in
   newEntry id (ENTRY_variable inf) err (*checking for double par happens inside newEntry func*)
 
