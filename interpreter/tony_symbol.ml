@@ -18,36 +18,35 @@ type param_status =
   | PARDEF_CHECK
 
 type scope = {
-  sco_parent : scope option;
-  sco_nesting : int;
+  sco_parent          : scope option;
+  sco_nesting         : int;
   mutable sco_entries : entry list;
-  mutable sco_negofs : int;
-  return_value : typ
+  mutable sco_negofs  : int;
+  return_value        : Llvm.lltype
 }
 
 and variable_info = {
-  variable_type   : typ;
-  variable_offset : int;
-  variable_value  : Llvm.llvalue option
+  variable_type     : Lllvm.llvalue;
+  variable_offset   : int
 }
 
 and function_info = {
   mutable function_isForward : bool;
   mutable function_paramlist : entry list;
   mutable function_redeflist : entry list;
-  mutable function_result    : typ;
+  mutable function_result    : Llvm.llvalue;
   mutable function_pstatus   : param_status;
   mutable function_initquad  : int
 }
 
 and parameter_info = {
-  parameter_type           : typ;
-  mutable parameter_offset : int;
-  parameter_mode           : pass_mode
+  mutable parameter_type    : Llvm.llvalue;
+  mutable parameter_offset  : int;
+  parameter_mode            : pass_mode
 }
 
 and temporary_info = {
-  temporary_type   : typ;
+  temporary_type   : Llvm.llvalue;
   temporary_offset : int
 }
 

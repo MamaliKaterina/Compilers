@@ -147,7 +147,16 @@ let rec print_typ t =
 	| TY_char	     -> Printf.eprintf "TY_char\n"
 	| TY_bool	     -> Printf.eprintf "TY_bool\n"
 	| TY_array (a) -> Printf.eprintf "TY_array of "; print_typ a
-	| TY_list (l)	 -> Printf.eprintf "TY_list of "; print_typ l
+  | TY_list (l)	 -> Printf.eprintf "TY_list of "; print_typ l
+
+(*let rec type_name t =
+  match t with
+  | Null			   -> ["Null"]
+  | TY_int		   -> ["int"]
+  | TY_char	     -> ["char"]
+  | TY_bool	     -> ["bool"]
+  | TY_array (a) -> (type_name a)::["array"]
+  | TY_list (l)	 -> (type_name l)::["list"]*)
 
 let rec sizeOfType t =
   match t with
