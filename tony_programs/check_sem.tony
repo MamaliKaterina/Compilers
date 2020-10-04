@@ -1,7 +1,12 @@
 def simple_sum():
 	char c1, c2, c3
+	list[int] a, b
+	bool tf
 	c2 := 'a'
 	c3 := 'b'
+	a := nil
+	tf := nil? (a)
+	tf := nil? (b)
 	c1 := c2 + c3
 end
 <*expecting sem error for sum of non-integers*>
