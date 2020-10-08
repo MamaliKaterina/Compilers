@@ -228,7 +228,7 @@ let newParameter err f mode typ id v =
                   error "Parameter name mismatch in redeclaration \
                          of function %a" pretty_id f.entry_id
                 else
-                  H.add !tab id p;
+                  H.add !tab id p; (*why add again? It must have been added at declare fun.*)
                 p
               | _ ->
                 error "I found a parameter that is not a parameter!";

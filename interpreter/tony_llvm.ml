@@ -27,16 +27,11 @@ type llvm_info = {
     the_writeString  : Llvm.llvalue; *)
 }
 
-(*
-let context = global_context ()
-let the_module = create_module context "compiler"
-let builder = builder context
-let make_int n = const_int i64_type context n
-let make_char c = const_int i8_type context c (*const_char doesnt exist???*)
-let make_bool b = const_int i1_type context (to_int b) (*bools as ints???*)
-let make_string str = const_string context str
-*)
-
+(* Helping function that returns whether the types of two parameters t1, t2
+   are valid for a logical operation: they must be of the same type which
+   mitgh be int, bool, char.
+   Actually, we return the opposite, whether t1, t2 is NOT valid, because it
+   helps with the code below. *)
 let invalid_log_op info t1 t2 =
   let a = Llvm.type_of t1 in
   let b = Llvm.type_of t2 in
@@ -51,6 +46,7 @@ let invalid_log_op info t1 t2 =
     | _   -> true )
   else true
 
+(* Helping function that gives the Llvm lltype from "our" typ *)
 let rec compile_type info t =
   match t with
   | Null         -> error "unexpected Null type";
@@ -448,7 +444,7 @@ and compile_else_stmt info then_bb after_bb ast =
   | None                    -> Llvm.position_at_end then_bb info.builder;
                                ignore (Llvm.build_br after_bb info.builder)
 
-and compile_func info ast =
+and compile_func ast =
   match ast with
   | Func_def(Header(None, nm, []), defs, stmts) ->
     begin
@@ -535,4 +531,4 @@ and compile_func info ast =
     end
   | _ -> error "main function must be void and without arguments"
 
-let compile info ast = compile_func ast
+let compile ast = compile_func ast
