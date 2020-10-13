@@ -424,7 +424,7 @@ and compile_stmt info ast =
                                                                                           raise (TypeError line) )
                                                     else (
                                                     (*let phi_iter = Llvm.build_phi [(n, bb)] "iter" info.builder in *)
-                                                      let loop_cond = Llvm.build_icmp Llvm.Icmp.Ne n (info.c64 0) "loop_cond" info.builder in
+                                                      let loop_cond = Llvm.build_icmp Llvm.Icmp.Ne n (info.c1 0) "loop_cond" info.builder in
                                                       ignore (Llvm.build_cond_br loop_cond body_bb after_bb info.builder);
                                                       Llvm.position_at_end body_bb info.builder;
                                                     (*let remaining = Llvm.build_sub phi_iter (info.c64 1) "remaining" info.builder in*)
