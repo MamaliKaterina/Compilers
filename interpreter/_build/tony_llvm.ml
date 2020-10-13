@@ -141,7 +141,10 @@ let rec compile_func_def info ast =
                                                         endFunctionHeader f fu ret_t;
                                                         List.iter (compile_def info) defs;
                                                         List.iter (compile_stmt info) stmts;
-                                                        ignore (Llvm.build_ret_void info.builder);
+                                                        (*ignore (Llvm.build_ret_void info.builder);*)
+                                                        let cur_bb2 = Llvm.insertion_block info.builder in
+                                                        (if (Llvm.block_terminator cur_bb2) = None then
+                                                           ignore (Llvm.build_ret_void info.builder));
                                                         Llvm.position_at_end next_bb info.builder;
                                                           (*Llvm.position_at_end ret_b info.builder;...???*)
                                                         closeScope ()
