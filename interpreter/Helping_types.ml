@@ -174,6 +174,10 @@ let rec sizeOfType t =
   | TY_array a1, TY_array a2 -> equalType a1 a2
   | TY_list l1, TY_list l2   -> equalType l1 l2
   | _                        -> t1 = t2
-*)
+
+
+let equalType_llvalues t1 t2 =
+  (Llvm.type_of t1) = (Llvm.type_of t2)*)
+
 let equalType t1 t2 =
   t1 = t2

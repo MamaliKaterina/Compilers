@@ -21,6 +21,7 @@ type llvm_info = {
   c32              : int -> Llvm.llvalue;
   c64              : int -> Llvm.llvalue;
   make_string      : string -> Llvm.llvalue;
+  global_counter   : int ref;
   (*the_vars         :Llvm.llvalue;
   the_nl           : Llvm.llvalue;
   the_writeInteger : Llvm.llvalue;
@@ -35,12 +36,12 @@ type llvm_info = {
 let invalid_log_op info t1 t2 =
   let a = Llvm.type_of t1 in
   let b = Llvm.type_of t2 in
-  let i64 = info.i64 in
+  let i32 = info.i32 in
   let i8 = info.i8 in
   let i1 = info.i1 in
   if a = b then
   (match a with
-    | i64 -> false
+    | i32 -> false
     | i8  -> false
     | i1  -> false
     | _   -> true )
@@ -51,11 +52,11 @@ let rec compile_type info t =
   match t with
   | Null         -> error "unexpected Null type";
                     raise UnknownError
-  | TY_int       -> info.i64
+  | TY_int       -> info.i32
   | TY_bool      -> info.i1
   | TY_char      -> info.i8
   | TY_array (p) -> let t = compile_type info p in
-                    Llvm.element_type t
+                    Llvm.pointer_type t
   | TY_list (p)  -> let t = compile_type info p in
                     Llvm.element_type (Llvm.struct_type info.context (Array.of_list([t; (Llvm.element_type info.tony_list)])))
 
@@ -100,7 +101,7 @@ let rec params_type info res frm =
   | [] -> List.rev res
   | hd::tl -> (match hd with
                | Formal (parPas, t, nms) -> let ty = compile_type info t in
-                                            let ty = (if parPas = BY_ref then (Llvm.element_type ty)
+                                            let ty = (if parPas = BY_ref then (Llvm.pointer_type ty)
                                                       else ty ) in (*what if an array is passed by ref?*)
                  let new_res = List.rev_append (List.rev_map (fun _ -> ty) nms) res in
                  params_type info new_res tl)
@@ -120,7 +121,11 @@ let rec params_type info res frm =
 
 let rec compile_func_def info ast =
   match ast with
-  | Func_def (Header(tOp, nm, formals), defs, stmts) -> let id = id_make nm in
+  | Func_def (Header(tOp, nm, formals), defs, stmts) -> let cur_bb = Llvm.insertion_block info.builder in
+                                                        let cur_f = Llvm.block_parent cur_bb in
+                                                        let next_bb = Llvm.append_block info.context "return" cur_f in
+                                                        ignore (Llvm.build_br next_bb info.builder);
+                                                        let id = id_make nm in
                                                         let f = newFunction id true in
                                                         let ret_t = (match tOp with
                                                                      | Some (t) -> compile_type info t
@@ -130,13 +135,14 @@ let rec compile_func_def info ast =
                                                         let fu = Llvm.declare_function nm ty info.the_module in
                                                         let bb = Llvm.append_block info.context "entry" fu in
                                                         Llvm.position_at_end bb info.builder;
-                                                        let cntr = ref 1 in
+                                                        let cntr = ref 0 in
                                                         openScope ret_t;
                                                         List.iter (compile_formal info f fu cntr) formals;
                                                         endFunctionHeader f fu ret_t;
                                                         List.iter (compile_def info) defs;
                                                         List.iter (compile_stmt info) stmts;
                                                         ignore (Llvm.build_ret_void info.builder);
+                                                        Llvm.position_at_end next_bb info.builder;
                                                           (*Llvm.position_at_end ret_b info.builder;...???*)
                                                         closeScope ()
 
@@ -151,7 +157,7 @@ and compile_func_decl info ast =
                                             let par_ar = Array.of_list (params_type info [] formals) in
                                             let ty = Llvm.function_type ret_t par_ar in
                                             let fu = Llvm.declare_function nm ty info.the_module in
-                                            let cntr =  ref 1 in
+                                            let cntr =  ref 0 in
                                             List.iter (sem_formal f fu cntr) formals;
                                             forwardFunction f;
                                             endFunctionHeader f fu ret_t
@@ -180,19 +186,19 @@ and compile_expr info ast =
   match ast with
   | E_atom a                    -> let p = compile_atom info a in
                                    Llvm.build_load p "loadtmp" info.builder
-  | E_int_const n               -> info.c64 n (*64-bit integers?*)
+  | E_int_const n               -> info.c32 n (*64-bit integers?*)
   | E_char_const c              -> info.c8 (Char.code c)
   | E_un_plus (e, line)         -> let t = compile_expr info e in
-                                   (if (Llvm.type_of t) <> info.i64 then (error "operator '+' expected integer as operand";
+                                   (if (Llvm.type_of t) <> info.i32 then (error "operator '+' expected integer as operand";
                                                                           raise (TypeError line))
                                    else t)
   | E_un_minus (e, line)        -> let t = compile_expr info e in
-                                   (if (Llvm.type_of t) <> info.i64 then (error "operator '-' expected integer as operand";
+                                   (if (Llvm.type_of t) <> info.i32 then (error "operator '-' expected integer as operand";
                                                                           raise (TypeError line))
                                     else Llvm.build_neg t "negtmp" info.builder )
   | E_op (e1, op, e2, line)     -> let t1 = compile_expr info e1
                                    and t2 = compile_expr info e2 in
-                                   (if (Llvm.type_of t1) <> info.i64 || (Llvm.type_of t2) <> info.i64 then
+                                   (if (Llvm.type_of t1) <> info.i32 || (Llvm.type_of t2) <> info.i32 then
                                       (let opString = op_as_string op in
                                        error "operator '%s' expected integers as operands" opString;
                                        raise (TypeError line))
@@ -230,7 +236,7 @@ and compile_expr info ast =
                                          | And -> Llvm.build_and t1 t2 "andtmp" info.builder
                                          | Or  -> Llvm.build_or t1 t2 "ortmp" info.builder ) )
   | E_new (a, e, line)          -> let t = compile_expr info e in
-                                   (if not (a <> Null) || (Llvm.type_of t) <> info.i64 then (error "operator 'new' expected a valid type and an integer as operands";
+                                   (if not (a <> Null) || (Llvm.type_of t) <> info.i32 then (error "operator 'new' expected a valid type and an integer as operands";
                                                                                             raise (TypeError line))
                                     else (Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
@@ -336,7 +342,14 @@ and compile_atom info ast =
                             | ENTRY_temporary(v) -> v.temporary_value
                             | _                  -> error "identifier '%s' is neither variable nor parameter" v;
                                                     raise (TypeError line) )
-  | A_string_const str  -> info.make_string str (*when reading the string from input it does not contain the white character in the end?*)
+  | A_string_const str  -> let str = info.make_string str in (*when reading the string from input it does not contain the white character in the end?*)
+                           (info.global_counter) := !(info.global_counter) + 1;
+                           let num = string_of_int (!(info.global_counter)) in
+                           let name = (Printf.sprintf "string%s" num) in
+                           let ptr_name = (Printf.sprintf "string_ptr%s" num) in
+                           let glb = Llvm.define_global name str info.the_module in
+                           let first_elem_ptr = Llvm.build_gep glb [|(info.c32 0); (info.c32 0)|] "string" info.builder in
+                           Llvm.define_global ptr_name first_elem_ptr info.the_module
   | A_atom (a, e, line) -> let v = compile_atom info a
                            and n = compile_expr info e in
                            begin
@@ -357,6 +370,7 @@ and compile_simple info ast =
   | S_assign (a, e, line) -> let x = compile_atom info a
                              and y = compile_expr info e in
                              if (Llvm.element_type (Llvm.type_of x)) <> (Llvm.type_of y) then (error "lvalue and rvalue in assignment are not of the same type";
+                                                                                               (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));
                                                                                 raise (TypeError line))
                              else ignore (Llvm.build_store y x info.builder) (*if it is an array assingment i have to assign x the pointer*)
   | S_call c              -> let v = compile_call info c	in
@@ -376,8 +390,9 @@ and compile_stmt info ast =
                                                     let bb = Llvm.insertion_block info.builder in
                                                     let f = Llvm.block_parent bb in
                                                     let f_ty = Llvm.type_of f in
-                                                    let ret_ty = Llvm.return_type f_ty in
+                                                    let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
                                                     if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
+                                                                                  (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));
                                                                                         raise (TypeError line))
                                                     else ignore (Llvm.build_ret t info.builder)
     | S_if (e, stmts, elsif, els, line)          -> let v = compile_expr info e in
@@ -475,6 +490,7 @@ and compile_func ast =
     let c32 = Llvm.const_int i32 in
     let c64 = Llvm.const_int i64 in
     let make_string = Llvm.const_stringz context in
+    let global_counter = ref 0 in
     (* Initialize global variables *)
     (*let vars_type = Llvm.array_type i64 26 in
     let the_vars = Llvm.declare_global vars_type "vars" the_module in
@@ -518,14 +534,15 @@ and compile_func ast =
       c32              = c32;
       c64              = c64;
       make_string      = make_string;
+      global_counter   = global_counter;
     } in
     List.iter (compile_def info) defs;
     List.iter (compile_stmt info) stmts;
     ignore (Llvm.build_ret (c32 0) builder);
     (* Verify *)
     Llvm_analysis.assert_valid_module the_module;
-    (* Optimize *)
-    ignore (Llvm.PassManager.run_module the_module pm);
+    (* Optimize
+    ignore (Llvm.PassManager.run_module the_module pm); *)
     (* Print out the IR *)
     Llvm.print_module "a.ll" the_module
     end
