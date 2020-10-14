@@ -321,17 +321,20 @@ and compile_call info c =
   match c with
   | C_call(nm, exprs, line) ->
     let id = id_make nm in
+    Printf.eprintf "%s\n" nm;
     let e = lookupEntry id LOOKUP_ALL_SCOPES true in
     (match e.entry_info with
     | ENTRY_function(f) ->
       if not (f.function_isForward) then
         let ret_void = (f.function_result = Some (info.void)) in
+        Printf.eprintf "%b\n" ret_void;
         begin
           try
             let params_array = Array.of_list (List.map2 (check_param nm line info) exprs f.function_paramlist) in (*???*)
             (if ret_void then Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "" info.builder
              else
-               Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder)
+               let a = Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder in
+               (Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of a))); a)
           with Invalid_argument _ ->
             error "fewer or more parameters than expected in call of function '%s'" nm;
             raise (TypeError line)
