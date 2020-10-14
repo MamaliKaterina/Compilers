@@ -304,8 +304,9 @@ and check_param fname line info exp par =
          else (
            compile_expr info exp )
        ) in
-       if (Llvm.type_of arg) <> (Llvm.type_of pi.parameter_value) then
+        if (Llvm.type_of arg) <> (Llvm.element_type (Llvm.type_of pi.parameter_value)) then
          (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
+          (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
           raise (TypeError line))
        else arg
      | _ ->
@@ -355,12 +356,19 @@ and compile_atom info ast =
                            Llvm.define_global ptr_name first_elem_ptr info.the_module
   | A_atom (a, e, line) -> let v = compile_atom info a
                            and n = compile_expr info e in
+                           (*Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of v)) (Llvm.string_of_lltype (Llvm.type_of n));*)
                            begin
                            try
-                             ignore (Llvm.element_type (Llvm.element_type (Llvm.type_of v)));
+                             ignore (Llvm.element_type (Llvm.element_type (Llvm.type_of v))); (*to check if v is pointer to pointer -> array*)
                              if (Llvm.type_of n) <> info.i32 then (error "array index not int"; (*print_typ only for debugging*)
                                                                    raise (TypeError line) )
-                             else Llvm.build_gep v [|(info.c32 0); (info.c32 0); n|] "arraytmp" info.builder (*???+inbounds?*)
+                             else (
+                               (*we need to keep info about array limits and have a sem fault if the program tries to break it*)
+                               let ar = Llvm.build_load v "loadtmp" info.builder in
+                               let ptr_to_int = Llvm.build_ptrtoint ar info.i32 "ptr_to_int" info.builder in
+                               let new_int = Llvm.build_add ptr_to_int n "addptr" info.builder in
+                               Llvm.build_inttoptr new_int (Llvm.type_of ar) "int_to_ptr" info.builder)
+(*Llvm.build_gep ar [|(info.c32 0); n|] "arraytmp" info.builder) *)(*???+inbounds?*)
                            with
                            | _ -> (error "identifier is not an array";
                                    raise (TypeError line))
