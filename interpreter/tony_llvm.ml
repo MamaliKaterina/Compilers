@@ -144,7 +144,9 @@ let rec compile_func_def info ast =
                                                         (*ignore (Llvm.build_ret_void info.builder);*)
                                                         let cur_bb2 = Llvm.insertion_block info.builder in
                                                         (if (Llvm.block_terminator cur_bb2) = None then
-                                                           ignore (Llvm.build_ret_void info.builder));
+                                                           ( if ret_t = info.void then
+                                                               ignore (Llvm.build_ret_void info.builder)
+                                                             else ignore(Llvm.build_unreachable info.builder)) );
                                                         Llvm.position_at_end next_bb info.builder;
                                                           (*Llvm.position_at_end ret_b info.builder;...???*)
                                                         closeScope ()
@@ -414,7 +416,10 @@ and compile_stmt info ast =
                                                     if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
                                                                                         (Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));
                                                                                         raise (TypeError line))
-                                                    else ignore (Llvm.build_ret t info.builder)
+                                                    else ignore (Llvm.build_ret t info.builder);
+                                                    let new_bb =  Llvm.insert_block info.context "after_return" bb in
+                                                    Llvm.move_block_after bb new_bb;
+                                                    Llvm.position_at_end new_bb info.builder
     | S_if (e, stmts, elsif, els, line)          -> let v = compile_expr info e in
                                                     if (Llvm.type_of v) <> info.i1 then (error "condition in if-statement must be evaluated as boolean";
                                                                                          raise (TypeError line) )
@@ -463,9 +468,13 @@ and compile_elsif_stmt info then_bb after_bb ast els =
                                                  let cond = Llvm.build_icmp Llvm.Icmp.Ne v (info.c1 0) "if_cond" info.builder in
                                                  let bb = Llvm.insertion_block info.builder in
                                                  let f = Llvm.block_parent bb in
-                                                 let else_bb = Llvm.append_block info.context "else" f in
+                                                 let new_then_bb = Llvm.insert_block info.context "new_then" after_bb in
+                                                 Llvm.move_block_after then_bb new_then_bb;
+                                                 let else_bb = Llvm.insert_block info.context "else" after_bb in
+                                                 Llvm.move_block_after new_then_bb else_bb;
                                                  Llvm.position_at_end then_bb info.builder;
-                                                 ignore (Llvm.build_cond_br cond then_bb else_bb info.builder);
+                                                 ignore (Llvm.build_cond_br cond new_then_bb else_bb info.builder);
+                                                 Llvm.position_at_end new_then_bb info.builder;
                                                  List.iter (compile_stmt info) stmts;
                                                  ignore (Llvm.build_br after_bb info.builder);
                                                  compile_elsif_stmt info else_bb after_bb elsif els )
