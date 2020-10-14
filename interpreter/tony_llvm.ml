@@ -306,7 +306,7 @@ and check_param fname line info exp par =
        ) in
         if pi.parameter_mode = PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.element_type (Llvm.type_of pi.parameter_value)) then
          (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-          (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
+         (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
           raise (TypeError line))
         else (if pi.parameter_mode <> PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.type_of pi.parameter_value) then
                 (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
@@ -335,11 +335,11 @@ and compile_call info c ret_void =
             raise (TypeError line)
         end
       else (
-        error "function '%s' in not yet defined" nm;
+        error "function '%s' is not yet defined" nm;
         raise (TypeError line)
       )
     | _ ->
-      error "identifier '%s' in not a function" nm;
+      error "identifier '%s' is not a function" nm;
       raise (TypeError line) )
 
 and compile_atom info ast =
@@ -387,8 +387,8 @@ and compile_simple info ast =
   | S_assign (a, e, line) -> let x = compile_atom info a
                              and y = compile_expr info e in
                              if (Llvm.element_type (Llvm.type_of x)) <> (Llvm.type_of y) then (error "lvalue and rvalue in assignment are not of the same type";
-                                                                                               (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));
-                                                                                raise (TypeError line))
+                                                                                              (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));
+                                                                                               raise (TypeError line))
                              else ignore (Llvm.build_store y x info.builder) (*if it is an array assingment i have to assign x the pointer*)
   | S_call c              -> let v = compile_call info c true	in
                              if (Llvm.type_of v) <> info.void then raise UnknownError
@@ -399,9 +399,10 @@ and compile_stmt info ast =
     | S_exit line                                -> let bb = Llvm.insertion_block info.builder in
                                                     let f = Llvm.block_parent bb in
                                                     let f_ty = Llvm.type_of f in
-                                                    let ret_ty = Llvm.return_type f_ty in
+                                                    let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
                                                     if ret_ty <> info.void then (error "type of object to be returned incompatible with return type of function";
-                                                                                           raise (TypeError line))
+                                                                                (Printf.eprintf "%s\n" (Llvm.string_of_lltype ret_ty));
+                                                                                 raise (TypeError line))
                                                     else ignore (Llvm.build_ret_void info.builder)
     | S_return (e, line)                         -> let t = compile_expr info e in
                                                     let bb = Llvm.insertion_block info.builder in
@@ -409,7 +410,7 @@ and compile_stmt info ast =
                                                     let f_ty = Llvm.type_of f in
                                                     let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
                                                     if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
-                                                                                  (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));
+                                                                                       (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));
                                                                                         raise (TypeError line))
                                                     else ignore (Llvm.build_ret t info.builder)
     | S_if (e, stmts, elsif, els, line)          -> let v = compile_expr info e in
@@ -437,8 +438,8 @@ and compile_stmt info ast =
                                                     ignore (Llvm.build_br loop_bb info.builder);
                                                     Llvm.position_at_end loop_bb info.builder;
                                                     let n = compile_expr info e in
-                                                    if (Llvm.type_of n) <> info.i1 then ( error "condition in for-statement must be evaluated as boolean";
-                                                                                          raise (TypeError line) )
+                                                    if (Llvm.type_of n) <> info.i1 then (error "condition in for-statement must be evaluated as boolean";
+                                                                                         raise (TypeError line) )
                                                     else (
                                                     (*let phi_iter = Llvm.build_phi [(n, bb)] "iter" info.builder in *)
                                                       let loop_cond = Llvm.build_icmp Llvm.Icmp.Ne n (info.c1 0) "loop_cond" info.builder in

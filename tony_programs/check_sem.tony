@@ -1,7 +1,14 @@
 def simple_sum():
+
+	def test ():
+		int u
+		u := 5
+		exit
+	end
+
 	char c1, c2, c3
 	c2 := 'a'
 	c3 := 'b'
-	c1 := c2 + c3
+	<*c1 := c2 + c3*>
 end
 <*expecting sem error for sum of non-integers*>

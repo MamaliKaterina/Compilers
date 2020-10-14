@@ -219,9 +219,9 @@ let newParameter err f mode typ id v =
               match p.entry_info with
               | ENTRY_parameter inf ->
                 if not (equalType (Llvm.type_of inf.parameter_value) (Llvm.element_type (Llvm.type_of v))) then
-                  (error "Parameter type mismatch in redeclaration \
-                         of function %a" pretty_id f.entry_id;
-                   Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of inf.parameter_value)) (Llvm.string_of_lltype (Llvm.type_of v)))
+                  error "Parameter type mismatch in redeclaration \
+                         of function %a" pretty_id f.entry_id
+                (*Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of inf.parameter_value)) (Llvm.string_of_lltype (Llvm.type_of v))*)
                 else if inf.parameter_mode != mode then
                   error "Parameter passing mode mismatch in redeclaration \
                          of function %a" pretty_id f.entry_id

@@ -20,6 +20,6 @@ end
 int NumberOfRings
 
 puts("Rings: ")
-NumberOfRings := readInteger()
+NumberOfRings := geti()
 hanoi(NumberOfRings, "left", "right", "middle")
 end
