@@ -243,7 +243,7 @@ and compile_expr info ast =
                                          | Or  -> Llvm.build_or t1 t2 "ortmp" info.builder ) )
   | E_new (a, e, line)          -> let t = compile_expr info e in
                                    (if not (a <> Null) || (Llvm.type_of t) <> info.i32 then (error "operator 'new' expected a valid type and an integer as operands";
-                                                                                            raise (TypeError line))
+                                                                                             raise (TypeError line))
                                     else (Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
@@ -252,7 +252,7 @@ and compile_expr info ast =
                                      Llvm.build_is_null t "nulltmp" info.builder
                                    with
                                    | _ -> error "operator 'nil?' expected operand of type list";
-                                     raise (TypeError line))
+                                          raise (TypeError line))
   | E_cons (e1, e2, line)       -> (let v1 = compile_expr info e1
                                    and v2 = compile_expr info e2 in
                                        try
@@ -260,8 +260,8 @@ and compile_expr info ast =
                                          ignore (Llvm.struct_name struct_t);
                                          let el_t = Array.get (Llvm.struct_element_types struct_t) 0 in
                                              if el_t <> (Llvm.type_of v1) then (error "type of list of right operand of operator '#' \
-                                                                                                      must be of same type as left operand";
-                                                                                               raise (TypeError line))
+                                                                                       must be of same type as left operand";
+                                                                                raise (TypeError line))
                                              else (
                                                let l_node = Llvm.build_malloc struct_t "list_node" info.builder in
                                                let elem1 = Llvm.build_gep l_node [| (info.c32 0) |] "elem_1" info.builder in
@@ -273,7 +273,7 @@ and compile_expr info ast =
                                              )
                                    with
                                    | _ -> error "operator '#' expected a valid type and a list as operands";
-                                     raise (TypeError line) )
+                                          raise (TypeError line) )
   | E_head (e, line)            -> (let v = compile_expr info e in
                                    try
                                      ignore (Llvm.struct_name (Llvm.type_of v));
@@ -281,7 +281,7 @@ and compile_expr info ast =
                                      Llvm.build_load ptr "head" info.builder
                                    with
                                    | _ -> error "operator 'head' expected operand of type list";
-                                     raise (TypeError line) )
+                                          raise (TypeError line) )
   | E_tail (e, line)            -> (let v = compile_expr info e in
                                    try
                                      ignore (Llvm.struct_name (Llvm.type_of v));
@@ -290,7 +290,7 @@ and compile_expr info ast =
                                      Llvm.build_bitcast tl (Llvm.type_of v) "tmpbitcast" info.builder
                                    with
                                    | _ ->  error "operator 'tail' expected operand of type list";
-                                     raise (TypeError line))
+                                           raise (TypeError line))
 
 
 and check_param fname line info exp par =
@@ -309,11 +309,11 @@ and check_param fname line info exp par =
        ) in
         if pi.parameter_mode = PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.element_type (Llvm.type_of pi.parameter_value)) then
          (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-         (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
+          (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));*)
           raise (TypeError line))
         else (if pi.parameter_mode <> PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.type_of pi.parameter_value) then
                 (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-                (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
+                 (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));*)
                  raise (TypeError line))
               else arg )
      | _ ->
@@ -366,11 +366,11 @@ and compile_atom info ast =
                            Llvm.define_global ptr_name first_elem_ptr info.the_module
   | A_atom (a, e, line) -> let v = compile_atom info a
                            and n = compile_expr info e in
-                           (*Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of v)) (Llvm.string_of_lltype (Llvm.type_of n));*)
+                           (*Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of v)) (Llvm.string_of_lltype (Llvm.type_of n)));*)
                            begin
                            try
                              ignore (Llvm.element_type (Llvm.element_type (Llvm.type_of v))); (*to check if v is pointer to pointer -> array*)
-                             if (Llvm.type_of n) <> info.i32 then (error "array index not int"; (*print_typ only for debugging*)
+                             if (Llvm.type_of n) <> info.i32 then (error "array index not int";
                                                                    raise (TypeError line) )
                              else (
                                (*we need to keep info about array limits and have a sem fault if the program tries to break it*)
@@ -378,7 +378,7 @@ and compile_atom info ast =
                                let ptr_to_int = Llvm.build_ptrtoint ar info.i32 "ptr_to_int" info.builder in
                                let new_int = Llvm.build_add ptr_to_int n "addptr" info.builder in
                                Llvm.build_inttoptr new_int (Llvm.type_of ar) "int_to_ptr" info.builder)
-(*Llvm.build_gep ar [|(info.c32 0); n|] "arraytmp" info.builder) *)(*???+inbounds?*)
+                               (*Llvm.build_gep ar [|(info.c32 0); n|] "arraytmp" info.builder) *)(*???+inbounds?*)
                            with
                            | _ -> (error "identifier is not an array";
                                    raise (TypeError line))
@@ -391,7 +391,7 @@ and compile_simple info ast =
   | S_assign (a, e, line) -> let x = compile_atom info a
                              and y = compile_expr info e in
                              if (Llvm.element_type (Llvm.type_of x)) <> (Llvm.type_of y) then (error "lvalue and rvalue in assignment are not of the same type";
-                                                                                              (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));
+                                                                                               (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));*)
                                                                                                raise (TypeError line))
                              else ignore (Llvm.build_store y x info.builder) (*if it is an array assingment i have to assign x the pointer*)
   | S_call c              -> let v = compile_call info c	in
@@ -405,7 +405,7 @@ and compile_stmt info ast =
                                                     let f_ty = Llvm.type_of f in
                                                     let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
                                                     if ret_ty <> info.void then (error "type of object to be returned incompatible with void type while this is a void function";
-                                                                                 (Printf.eprintf "%s\n" (Llvm.string_of_lltype ret_ty));
+                                                                                 (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype ret_ty));*)
                                                                                  raise (TypeError line))
                                                     else ignore (Llvm.build_ret_void info.builder)
     | S_return (e, line)                         -> let t = compile_expr info e in
@@ -414,7 +414,7 @@ and compile_stmt info ast =
                                                     let f_ty = Llvm.type_of f in
                                                     let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
                                                     if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
-                                                                                        (Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));
+                                                                                        (*(Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));*)
                                                                                         raise (TypeError line))
                                                     else ignore (Llvm.build_ret t info.builder);
                                                     let new_bb =  Llvm.insert_block info.context "after_return" bb in
@@ -434,8 +434,9 @@ and compile_stmt info ast =
                                                       Llvm.position_at_end then_bb info.builder;
                                                       List.iter (compile_stmt info) stmts;
                                                       ignore (Llvm.build_br after_bb info.builder);
+                                                      Llvm.position_at_end else_bb info.builder;
                                                       compile_elsif_stmt info else_bb after_bb elsif els;
-                                                      Llvm.position_at_end after_bb info.builder )
+                                                      Llvm.position_at_end after_bb info.builder );
     | S_for (simples1, e, simples2, stmts, line) -> List.iter (compile_simple info) simples1;
                                                     let bb = Llvm.insertion_block info.builder in
                                                     let f = Llvm.block_parent bb in
@@ -472,11 +473,11 @@ and compile_elsif_stmt info then_bb after_bb ast els =
                                                  Llvm.move_block_after then_bb new_then_bb;
                                                  let else_bb = Llvm.insert_block info.context "else" after_bb in
                                                  Llvm.move_block_after new_then_bb else_bb;
-                                                 Llvm.position_at_end then_bb info.builder;
                                                  ignore (Llvm.build_cond_br cond new_then_bb else_bb info.builder);
                                                  Llvm.position_at_end new_then_bb info.builder;
                                                  List.iter (compile_stmt info) stmts;
                                                  ignore (Llvm.build_br after_bb info.builder);
+                                                 Llvm.position_at_end else_bb info.builder;
                                                  compile_elsif_stmt info else_bb after_bb elsif els )
   | None                                    -> compile_else_stmt info then_bb after_bb els
 
@@ -570,8 +571,8 @@ and compile_func ast =
     ignore (Llvm.build_ret (c32 0) builder);
     (* Verify *)
     Llvm_analysis.assert_valid_module the_module;
-    (* Optimize
-    ignore (Llvm.PassManager.run_module the_module pm); *)
+    (* Optimize*)
+    (*ignore (Llvm.PassManager.run_module the_module pm);*)
     (* Print out the IR *)
     Llvm.print_module "a.ll" the_module
     end
