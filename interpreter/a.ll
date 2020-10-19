@@ -1,212 +1,206 @@
 ; ModuleID = 'tony program'
 source_filename = "tony program"
 
-@string1 = global [18 x i8] c"\22Initial array: \22\00"
-@string_ptr1 = global i8* getelementptr inbounds ([18 x i8], [18 x i8]* @string1, i32 0, i32 0)
-@string2 = global [17 x i8] c"\22Sorted array: \22\00"
-@string_ptr2 = global i8* getelementptr inbounds ([17 x i8], [17 x i8]* @string2, i32 0, i32 0)
-
 define i32 @main() {
 entry:
   br label %return
 
 return:                                           ; preds = %entry
-  br label %return1
-
-return1:                                          ; preds = %return
   %malloccall = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
-  %seed = bitcast i8* %malloccall to i32*
+  %limit = bitcast i8* %malloccall to i32*
+  %malloccall1 = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
+  %number = bitcast i8* %malloccall1 to i32*
   %malloccall2 = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
-  %i = bitcast i8* %malloccall2 to i32*
-  %malloccall3 = tail call i8* @malloc(i32 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i32))
-  %x = bitcast i8* %malloccall3 to i32**
-  %malloccall4 = tail call i8* @malloc(i32 mul (i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32), i32 16))
-  %arraytmp = bitcast i8* %malloccall4 to i32*
-  store i32* %arraytmp, i32** %x
-  store i32 65, i32* %seed
-  store i32 0, i32* %i
+  %counter = bitcast i8* %malloccall2 to i32*
+  store i32 10, i32* %limit
+  store i32 0, i32* %counter
+  %loadtmp = load i32, i32* %limit
+  %eqtmp = icmp sge i32 %loadtmp, 2
+  %if_cond = icmp ne i1 %eqtmp, false
+  br i1 %if_cond, label %then, label %else
+
+then:                                             ; preds = %return
+  %loadtmp3 = load i32, i32* %counter
+  %addtmp = add i32 %loadtmp3, 1
+  store i32 %addtmp, i32* %counter
+  br label %after
+
+else:                                             ; preds = %return
+  br label %after
+
+after:                                            ; preds = %else, %then
+  %loadtmp4 = load i32, i32* %limit
+  %eqtmp5 = icmp sge i32 %loadtmp4, 3
+  %if_cond6 = icmp ne i1 %eqtmp5, false
+  br i1 %if_cond6, label %then7, label %else8
+
+then7:                                            ; preds = %after
+  %loadtmp10 = load i32, i32* %counter
+  %addtmp11 = add i32 %loadtmp10, 1
+  store i32 %addtmp11, i32* %counter
+  br label %after9
+
+else8:                                            ; preds = %after
+  br label %after9
+
+after9:                                           ; preds = %else8, %then7
+  store i32 6, i32* %number
   br label %loop
 
-loop:                                             ; preds = %body, %return1
-  %loadtmp = load i32, i32* %i
-  %eqtmp = icmp slt i32 %loadtmp, 16
-  %loop_cond = icmp ne i1 %eqtmp, false
-  br i1 %loop_cond, label %body, label %after
+loop:                                             ; preds = %after31, %after9
+  %loadtmp13 = load i32, i32* %number
+  %loadtmp14 = load i32, i32* %limit
+  %eqtmp15 = icmp sle i32 %loadtmp13, %loadtmp14
+  %loop_cond = icmp ne i1 %eqtmp15, false
+  br i1 %loop_cond, label %body, label %after12
 
 body:                                             ; preds = %loop
-  %loadtmp5 = load i32, i32* %seed
-  %multmp = mul i32 %loadtmp5, 137
-  %addtmp = add i32 %multmp, 220
-  %loadtmp6 = load i32, i32* %i
-  %addtmp7 = add i32 %addtmp, %loadtmp6
-  %modtmp = srem i32 %addtmp7, 101
-  store i32 %modtmp, i32* %seed
-  %loadtmp8 = load i32, i32* %i
-  %loadtmp9 = load i32*, i32** %x
-  %ptr_to_int = ptrtoint i32* %loadtmp9 to i32
-  %addptr = add i32 %ptr_to_int, %loadtmp8
-  %int_to_ptr = inttoptr i32 %addptr to i32*
-  %loadtmp10 = load i32, i32* %seed
-  store i32 %loadtmp10, i32* %int_to_ptr
-  %loadtmp11 = load i32, i32* %i
-  %addtmp12 = add i32 %loadtmp11, 1
-  store i32 %addtmp12, i32* %i
-  br label %loop
+  %loadtmp16 = load i32, i32* %number
+  %subtmp = sub i32 %loadtmp16, 1
+  %calltmp = call i1 @"prime?"(i32 %subtmp)
+  %if_cond17 = icmp ne i1 %calltmp, false
+  br i1 %if_cond17, label %then18, label %else19
 
-after:                                            ; preds = %loop
-  %loadtmp13 = load i8*, i8** @string_ptr1
-  %loadtmp14 = load i32*, i32** %x
-  call void @writeArray(i8* %loadtmp13, i32 16, i32* %loadtmp14)
-  %loadtmp15 = load i32*, i32** %x
-  call void @bsort(i32 16, i32* %loadtmp15)
-  %loadtmp16 = load i8*, i8** @string_ptr2
-  %loadtmp17 = load i32*, i32** %x
-  call void @writeArray(i8* %loadtmp16, i32 16, i32* %loadtmp17)
+after12:                                          ; preds = %loop
   ret i32 0
+
+then18:                                           ; preds = %body
+  %loadtmp21 = load i32, i32* %counter
+  %addtmp22 = add i32 %loadtmp21, 1
+  store i32 %addtmp22, i32* %counter
+  br label %after20
+
+else19:                                           ; preds = %body
+  br label %after20
+
+after20:                                          ; preds = %else19, %then18
+  %loadtmp23 = load i32, i32* %number
+  %loadtmp24 = load i32, i32* %limit
+  %diftmp = icmp ne i32 %loadtmp23, %loadtmp24
+  %loadtmp25 = load i32, i32* %number
+  %addtmp26 = add i32 %loadtmp25, 1
+  %calltmp27 = call i1 @"prime?"(i32 %addtmp26)
+  %andtmp = and i1 %diftmp, %calltmp27
+  %if_cond28 = icmp ne i1 %andtmp, false
+  br i1 %if_cond28, label %then29, label %else30
+
+then29:                                           ; preds = %after20
+  %loadtmp32 = load i32, i32* %counter
+  %addtmp33 = add i32 %loadtmp32, 1
+  store i32 %addtmp33, i32* %counter
+  br label %after31
+
+else30:                                           ; preds = %after20
+  br label %after31
+
+after31:                                          ; preds = %else30, %then29
+  %loadtmp34 = load i32, i32* %number
+  %addtmp35 = add i32 %loadtmp34, 6
+  store i32 %addtmp35, i32* %number
+  br label %loop
 }
 
-define void @bsort(i32 %n1, i32* %x3) {
+define i1 @"prime?"(i32 %n1) {
 entry:
   %malloccall = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
   %n = bitcast i8* %malloccall to i32*
   store i32 %n1, i32* %n
-  %malloccall2 = tail call i8* @malloc(i32 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i32))
-  %x = bitcast i8* %malloccall2 to i32**
-  store i32* %x3, i32** %x
-  br label %return
-
-return:                                           ; preds = %entry
-  %malloccall4 = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
-  %i = bitcast i8* %malloccall4 to i32*
-  %malloccall5 = tail call i8* @malloc(i32 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i32))
-  %changed = bitcast i8* %malloccall5 to i1*
-  store i1 true, i1* %changed
-  br label %loop
-
-loop:                                             ; preds = %after8, %return
-  %loadtmp = load i1, i1* %changed
-  %loop_cond = icmp ne i1 %loadtmp, false
-  br i1 %loop_cond, label %body, label %after
-
-body:                                             ; preds = %loop
-  store i1 false, i1* %changed
-  store i32 0, i32* %i
-  br label %loop6
-
-after:                                            ; preds = %loop
-  ret void
-
-loop6:                                            ; preds = %after22, %body
-  %loadtmp9 = load i32, i32* %i
-  %loadtmp10 = load i32, i32* %n
-  %subtmp = sub i32 %loadtmp10, 1
-  %eqtmp = icmp slt i32 %loadtmp9, %subtmp
-  %loop_cond11 = icmp ne i1 %eqtmp, false
-  br i1 %loop_cond11, label %body7, label %after8
-
-body7:                                            ; preds = %loop6
-  %loadtmp12 = load i32, i32* %i
-  %loadtmp13 = load i32*, i32** %x
-  %ptr_to_int = ptrtoint i32* %loadtmp13 to i32
-  %addptr = add i32 %ptr_to_int, %loadtmp12
-  %int_to_ptr = inttoptr i32 %addptr to i32*
-  %loadtmp14 = load i32, i32* %int_to_ptr
-  %loadtmp15 = load i32, i32* %i
-  %addtmp = add i32 %loadtmp15, 1
-  %loadtmp16 = load i32*, i32** %x
-  %ptr_to_int17 = ptrtoint i32* %loadtmp16 to i32
-  %addptr18 = add i32 %ptr_to_int17, %addtmp
-  %int_to_ptr19 = inttoptr i32 %addptr18 to i32*
-  %loadtmp20 = load i32, i32* %int_to_ptr19
-  %eqtmp21 = icmp sgt i32 %loadtmp14, %loadtmp20
-  %if_cond = icmp ne i1 %eqtmp21, false
-  br i1 %if_cond, label %then, label %else
-
-after8:                                           ; preds = %loop6
-  br label %loop
-
-then:                                             ; preds = %body7
-  %loadtmp23 = load i32, i32* %i
-  %loadtmp24 = load i32*, i32** %x
-  %ptr_to_int25 = ptrtoint i32* %loadtmp24 to i32
-  %addptr26 = add i32 %ptr_to_int25, %loadtmp23
-  %int_to_ptr27 = inttoptr i32 %addptr26 to i32*
-  %loadtmp28 = load i32, i32* %i
-  %addtmp29 = add i32 %loadtmp28, 1
-  %loadtmp30 = load i32*, i32** %x
-  %ptr_to_int31 = ptrtoint i32* %loadtmp30 to i32
-  %addptr32 = add i32 %ptr_to_int31, %addtmp29
-  %int_to_ptr33 = inttoptr i32 %addptr32 to i32*
-  call void @swap(i32* %int_to_ptr27, i32* %int_to_ptr33)
-  store i1 true, i1* %changed
-  br label %after22
-
-else:                                             ; preds = %body7
-  br label %after22
-
-after22:                                          ; preds = %else, %then
-  %loadtmp34 = load i32, i32* %i
-  %addtmp35 = add i32 %loadtmp34, 1
-  store i32 %addtmp35, i32* %i
-  br label %loop6
-}
-
-declare noalias i8* @malloc(i32)
-
-define void @swap(i32* %x, i32* %y) {
-entry:
-  %malloccall = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
-  %t = bitcast i8* %malloccall to i32*
-  %loadtmp = load i32, i32* %x
-  store i32 %loadtmp, i32* %t
-  %loadtmp1 = load i32, i32* %y
-  store i32 %loadtmp1, i32* %x
-  %loadtmp2 = load i32, i32* %t
-  store i32 %loadtmp2, i32* %y
-  ret void
-}
-
-define void @writeArray(i8* %msg1, i32 %n3, i32* %x5) {
-entry:
-  %malloccall = tail call i8* @malloc(i32 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i32))
-  %msg = bitcast i8* %malloccall to i8**
-  store i8* %msg1, i8** %msg
   %malloccall2 = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
-  %n = bitcast i8* %malloccall2 to i32*
-  store i32 %n3, i32* %n
-  %malloccall4 = tail call i8* @malloc(i32 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i32))
-  %x = bitcast i8* %malloccall4 to i32**
-  store i32* %x5, i32** %x
-  %malloccall6 = tail call i8* @malloc(i32 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i32))
-  %i = bitcast i8* %malloccall6 to i32*
-  store i32 0, i32* %i
-  br label %loop
-
-loop:                                             ; preds = %after10, %entry
-  %loadtmp = load i32, i32* %i
-  %loadtmp7 = load i32, i32* %n
-  %eqtmp = icmp slt i32 %loadtmp, %loadtmp7
-  %loop_cond = icmp ne i1 %eqtmp, false
-  br i1 %loop_cond, label %body, label %after
-
-body:                                             ; preds = %loop
-  %loadtmp8 = load i32, i32* %i
-  %eqtmp9 = icmp sgt i32 %loadtmp8, 0
-  %if_cond = icmp ne i1 %eqtmp9, false
+  %i = bitcast i8* %malloccall2 to i32*
+  %loadtmp = load i32, i32* %n
+  %eqtmp = icmp slt i32 %loadtmp, 0
+  %if_cond = icmp ne i1 %eqtmp, false
   br i1 %if_cond, label %then, label %else
 
-after:                                            ; preds = %loop
-  ret void
+then:                                             ; preds = %entry
+  %loadtmp3 = load i32, i32* %n
+  %negtmp = sub i32 0, %loadtmp3
+  %calltmp = call i1 @"prime?"(i32 %negtmp)
+  ret i1 %calltmp
 
-then:                                             ; preds = %body
-  br label %after10
+after_return:                                     ; No predecessors!
+  br label %after
 
-else:                                             ; preds = %body
-  br label %after10
+else:                                             ; preds = %entry
+  %loadtmp4 = load i32, i32* %n
+  %eqtmp5 = icmp slt i32 %loadtmp4, 2
+  %if_cond6 = icmp ne i1 %eqtmp5, false
+  br i1 %if_cond6, label %new_then, label %else7
 
-after10:                                          ; preds = %else, %then
-  %loadtmp11 = load i32, i32* %i
-  %addtmp = add i32 %loadtmp11, 1
+new_then:                                         ; preds = %else
+  ret i1 false
+
+after_return8:                                    ; No predecessors!
+  br label %after
+
+else7:                                            ; preds = %else
+  %loadtmp9 = load i32, i32* %n
+  %eqtmp10 = icmp eq i32 %loadtmp9, 2
+  %if_cond11 = icmp ne i1 %eqtmp10, false
+  br i1 %if_cond11, label %new_then12, label %else13
+
+new_then12:                                       ; preds = %else7
+  ret i1 true
+
+after_return14:                                   ; No predecessors!
+  br label %after
+
+else13:                                           ; preds = %else7
+  %loadtmp15 = load i32, i32* %n
+  %modtmp = srem i32 %loadtmp15, 2
+  %eqtmp16 = icmp eq i32 %modtmp, 0
+  %if_cond17 = icmp ne i1 %eqtmp16, false
+  br i1 %if_cond17, label %new_then18, label %else19
+
+new_then18:                                       ; preds = %else13
+  ret i1 false
+
+after_return20:                                   ; No predecessors!
+  br label %after
+
+else19:                                           ; preds = %else13
+  store i32 3, i32* %i
+  br label %loop
+
+after:                                            ; preds = %after_return35, %after_return20, %after_return14, %after_return8, %after_return
+  unreachable
+
+loop:                                             ; preds = %after32, %else19
+  %loadtmp22 = load i32, i32* %i
+  %loadtmp23 = load i32, i32* %n
+  %divtmp = sdiv i32 %loadtmp23, 2
+  %eqtmp24 = icmp sle i32 %loadtmp22, %divtmp
+  %loop_cond = icmp ne i1 %eqtmp24, false
+  br i1 %loop_cond, label %body, label %after21
+
+body:                                             ; preds = %loop
+  %loadtmp25 = load i32, i32* %n
+  %loadtmp26 = load i32, i32* %i
+  %modtmp27 = srem i32 %loadtmp25, %loadtmp26
+  %eqtmp28 = icmp eq i32 %modtmp27, 0
+  %if_cond29 = icmp ne i1 %eqtmp28, false
+  br i1 %if_cond29, label %then30, label %else31
+
+after21:                                          ; preds = %loop
+  ret i1 true
+
+after_return35:                                   ; No predecessors!
+  br label %after
+
+then30:                                           ; preds = %body
+  ret i1 false
+
+after_return33:                                   ; No predecessors!
+  br label %after32
+
+else31:                                           ; preds = %body
+  br label %after32
+
+after32:                                          ; preds = %else31, %after_return33
+  %loadtmp34 = load i32, i32* %i
+  %addtmp = add i32 %loadtmp34, 2
   store i32 %addtmp, i32* %i
   br label %loop
 }
+
+declare noalias i8* @malloc(i32)
