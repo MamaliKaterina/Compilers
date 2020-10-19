@@ -1,0 +1,247 @@
+### Starting build.
+# Target: Main.ml.depends, tags: { extension:ml, file:Main.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Main.ml > Main.ml.depends
+# Target: Helping_types.ml.depends, tags: { extension:ml, file:Helping_types.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Helping_types.ml > Helping_types.ml.depends
+# Target: Identifier.mli.depends, tags: { extension:mli, file:Identifier.mli, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Identifier.mli > Identifier.mli.depends
+# Target: tony_lexer.mli.depends, tags: { extension:mli, file:tony_lexer.mli, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules tony_lexer.mli > tony_lexer.mli.depends
+# Target: tony_parser.mly, tags: { extension:mly, file:tony_parser.mly, infer, ocaml, ocamlyacc, parser, quiet, traverse }
+ocamlyacc tony_parser.mly
+# Target: tony_parser.mli.depends, tags: { extension:mli, file:tony_parser.mli, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules tony_parser.mli > tony_parser.mli.depends
+# Target: Helping_types.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:Helping_types.cmo, file:Helping_types.ml, implem, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Helping_types.cmo Helping_types.ml
+# Target: tony_parser.cmi, tags: { byte, compile, extension:mli, file:tony_parser.mli, interf, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_parser.cmi tony_parser.mli
+# Target: tony_llvm.ml.depends, tags: { extension:ml, file:tony_llvm.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules tony_llvm.ml > tony_llvm.ml.depends
+# Target: Error.mli.depends, tags: { extension:mli, file:Error.mli, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Error.mli > Error.mli.depends
+# Target: Identifier.cmi, tags: { byte, compile, extension:mli, file:Identifier.mli, interf, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Identifier.cmi Identifier.mli
+# Target: tony_symbol.ml.depends, tags: { extension:ml, file:tony_symbol.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules tony_symbol.ml > tony_symbol.ml.depends
+# Target: Error.cmi, tags: { byte, compile, extension:mli, file:Error.mli, interf, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Error.cmi Error.mli
+# Target: tony_symbol.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:tony_symbol.cmo, file:tony_symbol.ml, implem, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_symbol.cmo tony_symbol.ml
+# Target: tony_lexer.cmi, tags: { byte, compile, extension:mli, file:tony_lexer.mli, interf, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_lexer.cmi tony_lexer.mli
+# Target: tony_llvm.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:tony_llvm.cmo, file:tony_llvm.ml, implem, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_llvm.cmo tony_llvm.ml
++ ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_llvm.cmo tony_llvm.ml
+File "tony_llvm.ml", line 345, characters 46-91:
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+None
+File "tony_llvm.ml", line 347, characters 31-76:
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+None
+File "tony_llvm.ml", line 39, characters 6-9:
+Warning 26: unused variable i32.
+File "tony_llvm.ml", line 40, characters 6-8:
+Warning 26: unused variable i8.
+File "tony_llvm.ml", line 41, characters 6-8:
+Warning 26: unused variable i1.
+File "tony_llvm.ml", line 45, characters 6-8:
+Warning 11: this match case is unused.
+File "tony_llvm.ml", line 46, characters 6-8:
+Warning 11: this match case is unused.
+File "tony_llvm.ml", line 47, characters 6-7:
+Warning 11: this match case is unused.
+File "tony_llvm.ml", line 490, characters 53-54:
+Warning 26: unused variable f.
+# Target: Main.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:Main.cmo, file:Main.ml, implem, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Main.cmo Main.ml
+# Target: Identifier.ml.depends, tags: { extension:ml, file:Identifier.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Identifier.ml > Identifier.ml.depends
+# Target: Hashcons.ml.depends, tags: { extension:ml, file:Hashcons.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Hashcons.ml > Hashcons.ml.depends
+# Target: Hashcons.mli.depends, tags: { extension:mli, file:Hashcons.mli, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Hashcons.mli > Hashcons.mli.depends
+# Target: Hashcons.cmi, tags: { byte, compile, extension:mli, file:Hashcons.mli, interf, ocaml, quiet, traverse }
+ocamlc.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Hashcons.cmi Hashcons.mli
+# Target: Hashcons.cmx, tags: { compile, extension:cmx, extension:ml, file:Hashcons.cmx, file:Hashcons.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Hashcons.cmx Hashcons.ml
++ ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Hashcons.cmx Hashcons.ml
+File "Hashcons.ml", line 26, characters 19-31:
+Warning 3: deprecated: Array.create
+Use Array.make instead.
+# Target: tony_lexer.mll, tags: { extension:mll, file:tony_lexer.mll, lexer, ocaml, ocamllex, quiet, traverse }
+ocamllex.opt -q tony_lexer.mll
+# Target: tony_lexer.ml.depends, tags: { extension:ml, file:tony_lexer.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules tony_lexer.ml > tony_lexer.ml.depends
+# Target: tony_parser.ml.depends, tags: { extension:ml, file:tony_parser.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules tony_parser.ml > tony_parser.ml.depends
+# Target: Helping_types.cmx, tags: { compile, extension:cmx, extension:ml, file:Helping_types.cmx, file:Helping_types.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Helping_types.cmx Helping_types.ml
+# Target: tony_parser.cmx, tags: { compile, extension:cmx, extension:ml, file:tony_parser.cmx, file:tony_parser.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_parser.cmx tony_parser.ml
++ ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_parser.cmx tony_parser.ml
+File "tony_parser.mly", line 150, characters 46-54:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 151, characters 60-68:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 152, characters 110-118:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 154, characters 56-64:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 157, characters 104-112:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 163, characters 71-79:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 171, characters 79-87:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 172, characters 96-104:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 177, characters 52-60:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 179, characters 84-92:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 186, characters 73-81:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 187, characters 76-84:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 188, characters 71-79:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 189, characters 73-81:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 190, characters 73-81:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 191, characters 69-77:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 192, characters 69-77:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 193, characters 71-79:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 194, characters 73-81:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 195, characters 75-83:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 196, characters 81-89:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 197, characters 81-89:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 198, characters 87-95:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 201, characters 54-62:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 202, characters 71-79:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 203, characters 69-77:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 204, characters 90-98:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 206, characters 82-90:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 207, characters 65-73:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 208, characters 78-86:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+File "tony_parser.mly", line 209, characters 78-86:
+Warning 40: pos_lnum was selected from type Lexing.position.
+It is not visible in the current scope, and will not 
+be selected if the type becomes unknown.
+# Target: Error.ml.depends, tags: { extension:ml, file:Error.ml, ocaml, ocamldep, quiet, traverse }
+ocamldep.opt -modules Error.ml > Error.ml.depends
+# Target: Identifier.cmx, tags: { compile, extension:cmx, extension:ml, file:Identifier.cmx, file:Identifier.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Identifier.cmx Identifier.ml
+# Target: Error.cmx, tags: { compile, extension:cmx, extension:ml, file:Error.cmx, file:Error.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Error.cmx Error.ml
+# Target: tony_symbol.cmx, tags: { compile, extension:cmx, extension:ml, file:tony_symbol.cmx, file:tony_symbol.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_symbol.cmx tony_symbol.ml
+# Target: tony_lexer.cmx, tags: { compile, extension:cmx, extension:ml, file:tony_lexer.cmx, file:tony_lexer.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_lexer.cmx tony_lexer.ml
+# Target: tony_llvm.cmx, tags: { compile, extension:cmx, extension:ml, file:tony_llvm.cmx, file:tony_llvm.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_llvm.cmx tony_llvm.ml
++ ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o tony_llvm.cmx tony_llvm.ml
+File "tony_llvm.ml", line 345, characters 46-91:
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+None
+File "tony_llvm.ml", line 347, characters 31-76:
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+None
+File "tony_llvm.ml", line 39, characters 6-9:
+Warning 26: unused variable i32.
+File "tony_llvm.ml", line 40, characters 6-8:
+Warning 26: unused variable i8.
+File "tony_llvm.ml", line 41, characters 6-8:
+Warning 26: unused variable i1.
+File "tony_llvm.ml", line 45, characters 6-8:
+Warning 11: this match case is unused.
+File "tony_llvm.ml", line 46, characters 6-8:
+Warning 11: this match case is unused.
+File "tony_llvm.ml", line 47, characters 6-7:
+Warning 11: this match case is unused.
+File "tony_llvm.ml", line 490, characters 53-54:
+Warning 26: unused variable f.
+# Target: Main.cmx, tags: { compile, extension:cmx, extension:ml, file:Main.cmx, file:Main.ml, implem, native, ocaml, quiet, traverse }
+ocamlopt.opt -c -I /home/katerina2398/.opam/system/lib/llvm -o Main.cmx Main.ml
+# Target: Main.native, tags: { dont_link_with, extension:native, file:Main.native, link, native, ocaml, program, quiet, traverse }
+ocamlopt.opt -cclib -L/usr/lib/llvm-6.0/lib -I /home/katerina2398/.opam/system/lib/llvm /home/katerina2398/.opam/system/lib/llvm/shared/llvm.cmxa /home/katerina2398/.opam/system/lib/llvm/shared/llvm_analysis.cmxa /home/katerina2398/.opam/system/lib/llvm/shared/llvm_all_backends.cmxa /home/katerina2398/.opam/system/lib/llvm/shared/llvm_scalar_opts.cmxa Error.cmx Hashcons.cmx Helping_types.cmx Identifier.cmx tony_parser.cmx tony_lexer.cmx tony_symbol.cmx tony_llvm.cmx Main.cmx -o Main.native
+# Compilation successful.
