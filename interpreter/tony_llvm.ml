@@ -247,7 +247,6 @@ and compile_expr info ast =
                                     else (Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
-                                    Printf.eprintf("%s\n") ((Llvm.string_of_lltype (Llvm.type_of t)));
                                     if (Llvm.classify_type (Llvm.element_type (Llvm.type_of t))) = Llvm.TypeKind.Struct then
                                       Llvm.build_is_null t "nulltmp" info.builder
                                     else (
