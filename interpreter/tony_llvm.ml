@@ -247,18 +247,19 @@ and compile_expr info ast =
                                     else (Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
+                                    Printf.eprintf("%s\n") ((Llvm.string_of_lltype (Llvm.type_of t)));
                                     if (Llvm.classify_type (Llvm.element_type (Llvm.type_of t))) = Llvm.TypeKind.Struct then
-                                       Llvm.build_is_null t "nulltmp" info.builder
-                                     else (error "operator 'nil?' expected operand of type list";
-                                           raise (TypeError line)))
+                                      Llvm.build_is_null t "nulltmp" info.builder
+                                    else (
+                                      if Llvm.type_of t = info.tony_list then (*in this case we know it is null*)
+                                        (let n = Llvm.const_null info.tony_list in
+                                          Llvm.build_is_null n "nulltmp" info.builder
+                                        )
+                                      else (error "operator 'nil?' expected operand of type list";
+                                            raise (TypeError line))) )
   | E_cons (e1, e2, line)       -> (let v1 = compile_expr info e1
                                     and v2 = compile_expr info e2 in
-                                    if (Llvm.is_null v2) then (
-                                      if (Llvm.type_of v2) = (Llvm.type_of v1) then (error "type of list of right operand of operator '#' \
-                                                                                             is nil";
-                                                                                      (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of v1)) (Llvm.string_of_lltype (Llvm.type_of v2)));
-                                                                                      raise (TypeError line))
-                                      else (
+                                    if (Llvm.type_of v2) = info.tony_list || (Llvm.element_type (Llvm.type_of v2)) = info.tony_list then (
                                         let struct_t = (Llvm.struct_type info.context (Array.of_list([(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)]))) in
                                         let l_node = Llvm.build_malloc struct_t "list_node" info.builder in
                                         let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
@@ -266,8 +267,8 @@ and compile_expr info ast =
                                         let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder in
                                         ignore (Llvm.build_store v1 elem1 info.builder);
                                         ignore (Llvm.build_store ptr_change elem2 info.builder);
-                                        l_node
-                                        )
+                                        if (Llvm.type_of v2) = (Llvm.type_of v1) || Llvm.element_type (Llvm.type_of v2) = Llvm.type_of v1 then Llvm.build_bitcast l_node (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder
+                                        else l_node
                                     )
                                     else (
                                       if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v2))) = Llvm.TypeKind.Struct then
@@ -288,17 +289,17 @@ and compile_expr info ast =
                                       else (error "operator '#' expected a valid type and a list as operands";
                                             raise (TypeError line)) ) )
   | E_head (e, line)            -> (let v = compile_expr info e in
-                                    if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Struct then
+                                    if not(Llvm.is_null(v)) && (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Struct then
                                       let ptr = Llvm.build_gep v [| (info.c64 0); (info.c32 0) |] "head_ptr" info.builder in
                                       Llvm.build_load ptr "head" info.builder
-                                    else (error "operator 'head' expected operand of type list";
+                                    else (error "operator 'head' expected operand of non-empty list type";
                                          raise (TypeError line)) )
   | E_tail (e, line)            -> (let v = compile_expr info e in
-                                    if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Struct then
+                                    if not(Llvm.is_null(v)) && (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Struct then
                                      let ptr = Llvm.build_gep v [| (info.c64 0); (info.c32 1) |] "tail_ptr" info.builder in
                                      let tl = Llvm.build_load ptr "tail" info.builder in
                                      Llvm.build_bitcast tl (Llvm.type_of v) "tmpbitcast" info.builder
-                                    else (error "operator 'tail' expected operand of type list";
+                                    else (error "operator 'tail' expected operand of non-empty list type";
                                           raise (TypeError line)) )
 
 
@@ -405,12 +406,12 @@ and compile_simple info ast =
   | S_skip ()             -> () (*ignored by compiler? else must find suitable llvm instruction*)
   | S_assign (a, e, line) -> let x = compile_atom info a
                              and y = compile_expr info e in
-                             let new_y = (if (Llvm.type_of y) = info.tony_list then (
-                                 if (Llvm.classify_type (Llvm.element_type (Llvm.element_type (Llvm.type_of x)))) = Llvm.TypeKind.Struct then
-                                               Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder
+                             let new_y = (if (Llvm.type_of y) = info.tony_list || (Llvm.element_type (Llvm.type_of y)) = info.tony_list then (
+                                            if (Llvm.classify_type (Llvm.element_type (Llvm.element_type (Llvm.type_of x)))) = Llvm.TypeKind.Struct then (
+                                               Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder)
                                              else (error "Cannot assign a list to a non-list variable";
                                                    raise (TypeError line)) )
-                                          else y ) in
+                                          else ( y) ) in
                              if (Llvm.element_type (Llvm.type_of x)) <> (Llvm.type_of new_y) then (error "lvalue and rvalue in assignment are not of the same type";
                                                                                                    (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of new_y)));
                                                                                                    raise (TypeError line))
