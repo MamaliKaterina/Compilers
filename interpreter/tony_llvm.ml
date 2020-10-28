@@ -22,10 +22,14 @@ type llvm_info = {
   c64              : int -> Llvm.llvalue;
   make_string      : string -> Llvm.llvalue;
   global_counter   : int ref;
-  (*the_vars         :Llvm.llvalue;
-  the_nl           : Llvm.llvalue;
-  the_writeInteger : Llvm.llvalue;
-    the_writeString  : Llvm.llvalue; *)
+  puti             : Llvm.llvalue;
+  putb             : Llvm.llvalue;
+  puts             : Llvm.llvalue;
+  putc             : Llvm.llvalue;
+  geti             : Llvm.llvalue;
+  getb             : Llvm.llvalue;
+  gets             : Llvm.llvalue;
+  getc             : Llvm.llvalue;
 }
 
 (* Helping function that returns whether the types of two parameters t1, t2
@@ -59,6 +63,117 @@ let rec compile_type info t =
                     Llvm.pointer_type t
   | TY_list (p)  -> let t = compile_type info p in
                     Llvm.pointer_type (Llvm.struct_type info.context (Array.of_list([t; (Llvm.pointer_type info.tony_list)])))
+
+(*Returns true if the two types can be considered equivalent*)
+let rec equal_types info x y =
+  let x  = (if Llvm.classify_type x = Llvm.TypeKind.Pointer then Llvm.element_type x
+            else x) in
+  let y  = (if Llvm.classify_type y = Llvm.TypeKind.Pointer then Llvm.element_type y
+            else y) in
+  if x = y then (true, 0) (*if they are not exactly the same type they still can be equivalent*)
+  else (
+    if Llvm.classify_type x = Llvm.TypeKind.Struct && y = info.tony_list then (
+      let el = Array.get (Llvm.struct_element_types x) 0 in
+      if el <> info.tony_list && Llvm.classify_type el <> Llvm.TypeKind.Struct then (true, 2)
+      else (false, 0) )
+    else (
+      if Llvm.classify_type y = Llvm.TypeKind.Struct && x = info.tony_list then (
+        let el = Array.get (Llvm.struct_element_types y) 0 in
+        if el <> info.tony_list && Llvm.classify_type el <> Llvm.TypeKind.Struct then (true, 1)
+        else (false, 0) )
+      else (
+        if Llvm.classify_type x = Llvm.TypeKind.Struct && Llvm.classify_type y = Llvm.TypeKind.Struct then
+          let el1 = Array.get (Llvm.struct_element_types x) 0 in
+          let el2 = Array.get (Llvm.struct_element_types y) 0 in
+          equal_types info el1 el2
+        else (false, 0)
+      )
+    )
+  )
+
+
+
+let insert_built_in_function info nm =
+  let id =  id_make nm in
+  (*create fake scope for paraeters*)
+  let sco = {
+    sco_parent = None;
+    sco_nesting = -1;
+    sco_entries = [];
+    sco_negofs = 0;
+    return_value = None
+  } in
+  let ((par, res), var) = (
+    match nm with
+    | "puti" -> (
+      let inf_p = {
+        parameter_type = TY_int;
+        parameter_offset = 0;
+        parameter_mode = PASS_BY_VALUE;
+        parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
+      } in
+      let p = {
+        entry_id    = id_make "puti_var";
+        entry_scope = sco;
+        entry_info  = ENTRY_parameter inf_p
+      } in
+      (([p], Some(info.void)), Some(info.puti)) )
+    | "putc" -> (
+        let inf_p = {
+          parameter_type = TY_char;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i8);
+        } in
+        let p = {
+          entry_id    = id_make "putc_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.void)), Some(info.putc)) )
+    | "putb" -> (
+        let inf_p = {
+        parameter_type = TY_bool;
+        parameter_offset = 0;
+        parameter_mode = PASS_BY_VALUE;
+        parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i1);
+        } in
+        let p = {
+          entry_id    = id_make "putb_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.void)), Some(info.putb)) )
+    | "puts" -> (
+        let inf_p = {
+          parameter_type = TY_array (TY_char);
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type (Llvm.pointer_type info.i8));
+        } in
+        let p = {
+          entry_id    = id_make "puts_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.void)), Some(info.puts)) )
+    | "geti" -> (([], Some(info.i32)), Some(info.geti))
+    | "getc" -> (([], Some(info.i8)), Some(info.getc))
+    | "getb" -> (([], Some(info.i1)), Some(info.getb))
+    | "gets" -> (([], Some(Llvm.pointer_type info.i8)), Some(info.gets))
+    | _ -> raise UnknownError
+  ) in
+  let f = {
+    function_isForward = false;
+    function_paramlist = par;
+    function_redeflist = [];
+    function_result = res;
+    function_pstatus = PARDEF_DEFINE;
+    function_initquad = 0;
+    function_llvalue = var
+  } in
+  ignore (newEntry id (ENTRY_function f) false)
+
 
 
 let compile_formal info f fu cntr formal =
@@ -105,19 +220,6 @@ let rec params_type info res frm =
                                                       else ty ) in (*what if an array is passed by ref?*)
                  let new_res = List.rev_append (List.rev_map (fun _ -> ty) nms) res in
                  params_type info new_res tl)
-
-(*let set_names frms params =
-  match (frms, params) with
-  | ([], []) -> ()
-  | (hd1::tl1, p) -> (match hd1 with
-      | Formal (_, _, nms) -> let set_names_helper l1 l2 =
-                                (match (l1, l2) with
-                                 | (hd1::tl1, hd2::tl2) -> Llvm.set_value_name hd1 hd2 (*maybe id = id_make hd1, id<->hd1!!!*)
-                                 | ([], l)              -> l ) in
-                              let rest = set_names_helper nms p in
-                              set_names tl1 rest )
-  | _ -> error "formals and parametres of function not equal"
-*)
 
 let rec compile_func_def info ast =
   match ast with
@@ -266,22 +368,41 @@ and compile_expr info ast =
                                         let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder in
                                         ignore (Llvm.build_store v1 elem1 info.builder);
                                         ignore (Llvm.build_store ptr_change elem2 info.builder);
-                                        if (Llvm.type_of v2) = (Llvm.type_of v1) || Llvm.element_type (Llvm.type_of v2) = Llvm.type_of v1 then Llvm.build_bitcast l_node (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder
-                                        else l_node
+                                        l_node
                                     )
                                     else (
                                       if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v2))) = Llvm.TypeKind.Struct then
                                          let struct_t = Llvm.element_type (Llvm.type_of v2) in
                                          let el_t = Array.get (Llvm.struct_element_types struct_t) 0 in
-                                             if el_t <> (Llvm.type_of v1) then (error "type of list of right operand of operator '#' \
-                                                                                       must be of same type as left operand";
+                                         (*I want to compare types of v1 and el_t*)
+                                         let (eq, btc) = equal_types info (Llvm.type_of v1) (el_t) in
+                                         (*let struct_t = (if equal_types info (Llvm.struct_type info.context [|(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)|]) (struct_t) then (
+                                                           Llvm.struct_type info.context [|(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)|])
+                                                         else ( struct_t) ) in
+                                         let v1_type = ( if equal_types info (el_t) (Llvm.type_of v1) then (
+                                                           Llvm.struct_type info.context [| el_t; (Llvm.pointer_type info.tony_list) |])
+                                                         else (Llvm.type_of v1) ) in*)
+                                         if not(eq)
+                                             then (error "type of list of right operand of operator '#' \
+                                                          must be of same type as left operand";
+                                                   (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (el_t)) (Llvm.string_of_lltype (v1_type)));*)
                                                                                 raise (TypeError line))
                                              else (
+                                               let struct_t = (if btc = 2 then (
+                                                                 Llvm.struct_type info.context [|(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)|])
+                                                              else ( struct_t) ) in
+                                               let el_t = (if btc = 2 then
+                                                              Llvm.type_of v1
+                                                           else ( el_t) ) in
+                                              let v1_type = ( if btc = 1 then
+                                                                el_t
+                                                              else (Llvm.type_of v1) ) in
                                                let l_node = Llvm.build_malloc struct_t "list_node" info.builder in
                                                let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
                                                let elem2 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 1) |] "elem_2" info.builder in
-                                               let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder in
-                                               ignore (Llvm.build_store v1 elem1 info.builder);
+                                               let el_change = Llvm.build_bitcast v1 el_t "tmpbitcast1" info.builder in
+                                               let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast2" info.builder in
+                                               ignore (Llvm.build_store el_change elem1 info.builder);
                                                ignore (Llvm.build_store ptr_change elem2 info.builder);
                                                l_node
                                              )
@@ -326,7 +447,7 @@ and check_param fname line info exp par =
         ) in
         if pi.parameter_mode = PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.element_type (Llvm.type_of pi.parameter_value)) then
          (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-          (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));*)
+          (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
           raise (TypeError line))
         else (if pi.parameter_mode <> PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.type_of pi.parameter_value) then
                 (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
@@ -343,25 +464,22 @@ and compile_call info c =
     let e = lookupEntry id LOOKUP_ALL_SCOPES true in
     (match e.entry_info with
     | ENTRY_function(f) ->
-      if not (f.function_isForward) then
-        let ret_void = (f.function_result = Some (info.void)) in
-        begin
-          try
-            let params_array = Array.of_list (List.map2 (check_param nm line info) exprs f.function_paramlist) in (*???*)
-            (if ret_void then Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "" info.builder
-             else
-               Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder)
-          with Invalid_argument _ ->
-            error "fewer or more parameters than expected in call of function '%s'" nm;
-            raise (TypeError line)
-        end
-      else (
-        error "function '%s' is not yet defined" nm;
-        raise (TypeError line)
-      )
-    | _ ->
-      error "identifier '%s' is not a function" nm;
-      raise (TypeError line) )
+     if not (f.function_isForward) then
+       let ret_void = (f.function_result = Some (info.void)) in
+         begin
+           try
+             let params_array = Array.of_list (List.map2 (check_param nm line info) exprs f.function_paramlist) in (*???*)
+             (if ret_void then Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "" info.builder
+              else
+                 Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder)
+           with Invalid_argument _ ->
+             error "fewer or more parameters than expected in call of function '%s'" nm;
+             raise (TypeError line)
+         end
+     else (error "function '%s' is not yet defined" nm;
+           raise (TypeError line))
+    | _ -> error "identifier '%s' is not a function" nm;
+           raise (TypeError line) )
 
 and compile_atom info ast =
   match ast with
@@ -405,16 +523,15 @@ and compile_simple info ast =
   | S_skip ()             -> () (*ignored by compiler? else must find suitable llvm instruction*)
   | S_assign (a, e, line) -> let x = compile_atom info a
                              and y = compile_expr info e in
-                             let new_y = (if (Llvm.type_of y) = info.tony_list || (Llvm.element_type (Llvm.type_of y)) = info.tony_list then (
-                                            if (Llvm.classify_type (Llvm.element_type (Llvm.element_type (Llvm.type_of x)))) = Llvm.TypeKind.Struct then (
-                                               Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder)
-                                             else (error "Cannot assign a list to a non-list variable";
-                                                   raise (TypeError line)) )
-                                          else ( y) ) in
-                             if (Llvm.element_type (Llvm.type_of x)) <> (Llvm.type_of new_y) then (error "lvalue and rvalue in assignment are not of the same type";
-                                                                                                   (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of new_y)));
-                                                                                                   raise (TypeError line))
-                            else ignore (Llvm.build_store new_y x info.builder) (*if it is an array assingment i have to assign x the pointer*)
+                             let (eq, btc) = equal_types info (Llvm.element_type (Llvm.type_of x)) (Llvm.type_of y) in
+                             if not(eq) then (error "lvalue and rvalue in assignment are not of the same type";
+                                              (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of new_y)));*)
+                                              raise (TypeError line))
+                             else (
+                               let new_y = (if btc = 2 then Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder
+                                            else y) in
+                               ignore (Llvm.build_store new_y x info.builder) (*if it is an array assingment i have to assign x the pointer*)
+                             )
 
   | S_call c              -> let v = compile_call info c	in
                              if (Llvm.type_of v) <> info.void then raise UnknownError
@@ -555,16 +672,40 @@ and compile_func ast =
     Llvm.set_linkage Llvm.Linkage.Private the_nl;
     Llvm.set_global_constant true the_nl;
     Llvm.set_initializer (Llvm.const_stringz context nl) the_nl;
-    Llvm.set_alignment 1 the_nl;
+      Llvm.set_alignment 1 the_nl;*)
     (* Initialize library functions *)
-    let writeInteger_type =
-      Llvm.function_type (Llvm.void_type context) [| i64 |] in
-    let the_writeInteger =
-      Llvm.declare_function "writeInteger" writeInteger_type the_module in
-    let writeString_type =
-      Llvm.function_type (Llvm.void_type context) [| Llvm.element_type i8 |] in
-    let the_writeString =
-      Llvm.declare_function "writeString" writeString_type the_module in*)
+    let puti_type =
+      Llvm.function_type (Llvm.void_type context) [| i32 |] in
+    let puti =
+        Llvm.declare_function "puti" puti_type the_module in
+    let putc_type =
+      Llvm.function_type (Llvm.void_type context) [| i8 |] in
+    let putc =
+          Llvm.declare_function "putc" putc_type the_module in
+    let putb_type =
+      Llvm.function_type (Llvm.void_type context) [| i1 |] in
+    let putb =
+          Llvm.declare_function "putb" putb_type the_module in
+    let puts_type =
+      Llvm.function_type (Llvm.void_type context) [| Llvm.pointer_type i8 |] in
+    let puts =
+      Llvm.declare_function "puts" puts_type the_module in
+    let geti_type =
+      Llvm.function_type (i32) [| |] in
+    let geti =
+      Llvm.declare_function "geti" geti_type the_module in
+    let getc_type =
+      Llvm.function_type (i8) [| |] in
+    let getc =
+      Llvm.declare_function "getc" getc_type the_module in
+    let getb_type =
+      Llvm.function_type (i1) [| |] in
+    let getb =
+      Llvm.declare_function "getb" getb_type the_module in
+    let gets_type =
+      Llvm.function_type (Llvm.pointer_type i8) [| |] in
+    let gets =
+      Llvm.declare_function "gets" gets_type the_module in
     (* Define and start and main function *)
     let main_type = Llvm.function_type i32 [| |] in
     let main = Llvm.declare_function nm main_type the_module in
@@ -587,10 +728,22 @@ and compile_func ast =
       c64              = c64;
       make_string      = make_string;
       global_counter   = global_counter;
+      puti             = puti;
+      putb             = putb;
+      puts             = puts;
+      putc             = putc;
+      geti             = geti;
+      getb             = getb;
+      gets             = gets;
+      getc             = getc;
     } in
+    let function_list = ["puti"; "putb"; "puts"; "putc"; "geti"; "getb"; "gets"; "getc"] in
+    List.iter (insert_built_in_function info) function_list;
+    openScope i32;
     List.iter (compile_def info) defs;
     List.iter (compile_stmt info) stmts;
     ignore (Llvm.build_ret (c32 0) builder);
+    closeScope ();
     (* Verify *)
     Llvm_analysis.assert_valid_module the_module;
     (* Optimize*)

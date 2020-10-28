@@ -129,17 +129,6 @@ let andor_as_string ao =
   | And -> "and"
   | Or  -> "or"
 
-(*let rec print_helping_type t =
-	match t with
-	| Empty			  -> Printf.eprintf " Empty "
-	| M_int (n)		-> Printf.eprintf " %d " n
-	| M_char (c)	-> Printf.eprintf " %c " c
-	| M_bool (b)	-> Printf.eprintf " %b " b
-	| M_array (a)	-> Printf.eprintf "{ "; Array.iter print_helping_type !a; Printf.eprintf " }"
-	| M_list (l)	-> Printf.eprintf "[ "; List.iter print_helping_type !l; Printf.eprintf " ]"
-	| M_name (s)	-> Printf.eprintf " %s " s
-*)
-
 let rec print_typ t =
   match t with
 	| Null			   -> Printf.eprintf "Null\n"
@@ -149,15 +138,6 @@ let rec print_typ t =
 	| TY_array (a) -> Printf.eprintf "TY_array of "; print_typ a
   | TY_list (l)	 -> Printf.eprintf "TY_list of "; print_typ l
 
-(*let rec type_name t =
-  match t with
-  | Null			   -> ["Null"]
-  | TY_int		   -> ["int"]
-  | TY_char	     -> ["char"]
-  | TY_bool	     -> ["bool"]
-  | TY_array (a) -> (type_name a)::["array"]
-  | TY_list (l)	 -> (type_name l)::["list"]*)
-
 let rec sizeOfType t =
   match t with
   | TY_int     -> 2
@@ -166,18 +146,6 @@ let rec sizeOfType t =
   | TY_array a -> 8 (*size of system word length, use 8 for 64-bit architecture???*)
   | TY_list l  -> 8 (*size of system word length, use 8 for 64-bit architecture???*)
   | _          -> 0
-
-
-
-(*let rec equalType t1 t2 =
-  match t1, t2 with
-  | TY_array a1, TY_array a2 -> equalType a1 a2
-  | TY_list l1, TY_list l2   -> equalType l1 l2
-  | _                        -> t1 = t2
-
-
-let equalType_llvalues t1 t2 =
-  (Llvm.type_of t1) = (Llvm.type_of t2)*)
 
 let equalType t1 t2 =
   t1 = t2
