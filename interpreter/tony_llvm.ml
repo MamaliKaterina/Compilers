@@ -30,6 +30,13 @@ type llvm_info = {
   getb             : Llvm.llvalue;
   gets             : Llvm.llvalue;
   getc             : Llvm.llvalue;
+  abs              : Llvm.llvalue;
+  ord              : Llvm.llvalue;
+  chr              : Llvm.llvalue;
+  strlen           : Llvm.llvalue;
+  strcmp           : Llvm.llvalue;
+  strcpy           : Llvm.llvalue;
+  strcat           : Llvm.llvalue;
 }
 
 (* Helping function that returns whether the types of two parameters t1, t2
@@ -95,7 +102,7 @@ let rec equal_types info x y =
 
 let insert_built_in_function info nm =
   let id =  id_make nm in
-  (*create fake scope for paraeters*)
+  (*create fake scope for parameters*)
   let sco = {
     sco_parent = None;
     sco_nesting = -1;
@@ -106,18 +113,18 @@ let insert_built_in_function info nm =
   let ((par, res), var) = (
     match nm with
     | "puti" -> (
-      let inf_p = {
-        parameter_type = TY_int;
-        parameter_offset = 0;
-        parameter_mode = PASS_BY_VALUE;
-        parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
-      } in
-      let p = {
-        entry_id    = id_make "puti_var";
-        entry_scope = sco;
-        entry_info  = ENTRY_parameter inf_p
-      } in
-      (([p], Some(info.void)), Some(info.puti)) )
+        let inf_p = {
+          parameter_type = TY_int;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
+        } in
+        let p = {
+          entry_id    = id_make "puti_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.void)), Some(info.puti)) )
     | "putc" -> (
         let inf_p = {
           parameter_type = TY_char;
@@ -161,6 +168,97 @@ let insert_built_in_function info nm =
     | "getc" -> (([], Some(info.i8)), Some(info.getc))
     | "getb" -> (([], Some(info.i1)), Some(info.getb))
     | "gets" -> (([], Some(Llvm.pointer_type info.i8)), Some(info.gets))
+    | "abs" -> (
+        let inf_p = {
+          parameter_type = TY_int;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
+        } in
+        let p = {
+          entry_id    = id_make "abs_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.i32)), Some(info.abs)) )
+    | "ord" -> (
+        let inf_p = {
+          parameter_type = TY_char;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i8);
+        } in
+        let p = {
+          entry_id    = id_make "ord_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.i32)), Some(info.ord)) )
+    | "chr" -> (
+        let inf_p = {
+          parameter_type = TY_int;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
+        } in
+        let p = {
+          entry_id    = id_make "chr_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.i8)), Some(info.chr)) )
+    | "strlen" -> (
+        let inf_p = {
+          parameter_type = TY_array (TY_char);
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type (Llvm.pointer_type info.i8));
+        } in
+        let p = {
+          entry_id    = id_make "strlen_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.i32)), Some(info.strlen)) )
+    | "strcmp" -> (
+        let inf_p = {
+          parameter_type = TY_array (TY_char);
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type (Llvm.pointer_type info.i8));
+        } in
+        let p = {
+          entry_id    = id_make "strcmp_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p; p], Some(info.i32)), Some(info.strcmp)) )
+    | "strcpy" -> (
+        let inf_p = {
+          parameter_type = TY_array (TY_char);
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type (Llvm.pointer_type info.i8));
+        } in
+        let p = {
+          entry_id    = id_make "strcpy_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p; p], Some(info.void)), Some(info.strcpy)) )
+    | "strcat" -> (
+        let inf_p = {
+          parameter_type = TY_array (TY_char);
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type (Llvm.pointer_type info.i8));
+        } in
+        let p = {
+          entry_id    = id_make "strcat_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p; p], Some(info.void)), Some(info.strcat)) )
     | _ -> raise UnknownError
   ) in
   let f = {
@@ -447,7 +545,7 @@ and check_param fname line info exp par =
         ) in
         if pi.parameter_mode = PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.element_type (Llvm.type_of pi.parameter_value)) then
          (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-          (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));
+          (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of pi.parameter_value)));*)
           raise (TypeError line))
         else (if pi.parameter_mode <> PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.type_of pi.parameter_value) then
                 (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
@@ -677,15 +775,15 @@ and compile_func ast =
     let puti_type =
       Llvm.function_type (Llvm.void_type context) [| i32 |] in
     let puti =
-        Llvm.declare_function "puti" puti_type the_module in
+      Llvm.declare_function "puti" puti_type the_module in
     let putc_type =
       Llvm.function_type (Llvm.void_type context) [| i8 |] in
     let putc =
-          Llvm.declare_function "putc" putc_type the_module in
+      Llvm.declare_function "putc" putc_type the_module in
     let putb_type =
       Llvm.function_type (Llvm.void_type context) [| i1 |] in
     let putb =
-          Llvm.declare_function "putb" putb_type the_module in
+      Llvm.declare_function "putb" putb_type the_module in
     let puts_type =
       Llvm.function_type (Llvm.void_type context) [| Llvm.pointer_type i8 |] in
     let puts =
@@ -706,9 +804,37 @@ and compile_func ast =
       Llvm.function_type (Llvm.pointer_type i8) [| |] in
     let gets =
       Llvm.declare_function "gets" gets_type the_module in
+    let abs_type =
+      Llvm.function_type (i32) [| i32 |] in
+    let abs =
+      Llvm.declare_function "abs" abs_type the_module in
+    let ord_type =
+      Llvm.function_type (i32) [| i8 |] in
+    let ord =
+      Llvm.declare_function "ord" ord_type the_module in
+    let chr_type =
+      Llvm.function_type (i8) [| i32 |] in
+    let chr =
+      Llvm.declare_function "chr" chr_type the_module in
+    let strlen_type =
+      Llvm.function_type (i32) [| Llvm.pointer_type i8 |] in
+    let strlen =
+      Llvm.declare_function "strlen" strlen_type the_module in
+    let strcmp_type =
+      Llvm.function_type (i32) [| (Llvm.pointer_type i8); (Llvm.pointer_type i8) |] in
+    let strcmp =
+      Llvm.declare_function "strcmp" strcmp_type the_module in
+    let strcpy_type =
+      Llvm.function_type (Llvm.void_type context) [| (Llvm.pointer_type i8); (Llvm.pointer_type i8) |] in
+    let strcpy =
+      Llvm.declare_function "strcpy" strcpy_type the_module in
+    let strcat_type =
+      Llvm.function_type (Llvm.void_type context) [| (Llvm.pointer_type i8); (Llvm.pointer_type i8) |] in
+    let strcat =
+      Llvm.declare_function "strcat" strcat_type the_module in
     (* Define and start and main function *)
     let main_type = Llvm.function_type i32 [| |] in
-    let main = Llvm.declare_function nm main_type the_module in
+    let main = Llvm.declare_function "main" main_type the_module in
     let bb = Llvm.append_block context "entry" main in
     Llvm.position_at_end bb builder;
     (* Emit the program code *)
@@ -736,8 +862,15 @@ and compile_func ast =
       getb             = getb;
       gets             = gets;
       getc             = getc;
+      abs              = abs;
+      ord              = ord;
+      chr              = chr;
+      strlen           = strlen;
+      strcmp           = strcmp;
+      strcpy           = strcpy;
+      strcat           = strcat;
     } in
-    let function_list = ["puti"; "putb"; "puts"; "putc"; "geti"; "getb"; "gets"; "getc"] in
+    let function_list = ["puti"; "putb"; "puts"; "putc"; "geti"; "getb"; "gets"; "getc"; "abs"; "ord"; "chr"; "strlen"; "strcmp"; "strcpy"; "strcat"] in
     List.iter (insert_built_in_function info) function_list;
     openScope i32;
     List.iter (compile_def info) defs;

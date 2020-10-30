@@ -40,9 +40,9 @@ rule lexer = parse
 	| letter (letter | digit | ['_' '?'])* {T_var (lexeme lexbuf)}
 	| digit+	{T_int_const (int_of_string (lexeme lexbuf))}
   | "'" (escape_seq | [^ '\\' '\'' '\"' '\n']) "'"	{T_char_const (lexeme lexbuf).[1]}	(*can't print non latin characters*)
-	| "\"" (escape_seq | [^ '\\' '\'' '\"' '\n'])* "\""	{T_string_const (lexeme lexbuf)}
+	| "\"" (escape_seq | [^ '\\' '\'' '\"' '\n'])* "\""	{T_string_const (String.sub (lexeme lexbuf) 1 ((String.length (lexeme lexbuf)) - 2))}
 
-	| '=' 	{T_eq}
+	| '=' {T_eq}
 	| '+'	{T_plus}
 	| '-'	{T_minus}
 	| '*'	{T_times}

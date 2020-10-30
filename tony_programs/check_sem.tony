@@ -1,14 +1,25 @@
-def simple_sum():
+def check_llvm():
 
-	def test ():
-		int u
-		u := 5
-		exit
+	def test (list[int] u):
+		u := 56 # nil
 	end
 
-	char c1, c2, c3
-	c2 := 'a'
-	c3 := 'b'
-	<*c1 := c2 + c3*>
+	int h
+	list[int] a, b, t
+	list[list[int]] c
+	bool tf
+	%a := nil # nil # nil
+	c := nil
+	%c := nil # c
+	b := 56 # 57 # nil
+	t := tail(a)
+	t := tail(b)
+	%b := nil # nil # nil
+	%t := tail(nil)
+	c := a # nil
+	%c := nil # c
+	test(a)
+
+	h := 5
+	test(a)
 end
-<*expecting sem error for sum of non-integers*>
