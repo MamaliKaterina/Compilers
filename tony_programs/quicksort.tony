@@ -21,12 +21,12 @@ def main ():
 	def writeList (char[] msg; list[int] l):
 		bool more
 
-		puts(msg)
+		%puts(msg)
 		for more := false; not nil?(l); l := tail(l), more := true:
-			if more: puts(", ") end
-			puti(head(l))
+			if more: <*puts(", ")*> skip end
+			%puti(head(l))
 		end
-		puts("\n")
+		%puts("\n")
 	end
 
 	int seed, i
@@ -34,7 +34,7 @@ def main ():
 
 	seed := 65
 	for i := 0, l := nil; i < 16; i := i+1:
-		seed := (seed * 137 + 220 + i) mod 101
+		seed := (seed * 137 + 220 + i) mod 01
 		l := seed # l
 	end
 	writeList("Initial list: ", l)

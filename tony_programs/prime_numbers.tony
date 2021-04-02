@@ -22,6 +22,7 @@ def main ():
 
 	puts("Limit: ")
 	limit := geti()
+	limit := 10 %!!!must be removed!!!
 	puts("Primes:\n")
 	counter := 0
 	if limit >= 2: counter := counter + 1 puti(2) puts("\n") end
@@ -38,5 +39,5 @@ def main ():
 			puts("\n")
 		end
 	end
-	puts("\nTotal: ")
+	%puts("\nTotal: ")
 end

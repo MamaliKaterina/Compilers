@@ -26,9 +26,9 @@ type scope = {
 }
 
 and variable_info = {
-  variable_type     : typ;
-  variable_offset   : int;
-  variable_value    : Llvm.llvalue
+  variable_type         : typ;
+  variable_offset       : int;
+  variable_value        : Llvm.llvalue
 }
 
 and function_info = {

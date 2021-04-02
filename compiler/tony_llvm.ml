@@ -444,7 +444,8 @@ and compile_expr info ast =
   | E_new (a, e, line)          -> let t = compile_expr info e in
                                    (if not (a <> Null) || (Llvm.type_of t) <> info.i32 then (error "operator 'new' expected a valid type and an integer as operands";
                                                                                              raise (TypeError line))
-                                    else (Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
+                                    else (
+                                      Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
                                     if (Llvm.classify_type (Llvm.element_type (Llvm.type_of t))) = Llvm.TypeKind.Struct then
@@ -606,11 +607,13 @@ and compile_atom info ast =
                                                                    raise (TypeError line) )
                                else (
                                 (*we need to keep info about array limits and have a sem fault if the program tries to break it*)
-                                let ar = Llvm.build_load v "loadtmp" info.builder in
-                                let ptr_to_int = Llvm.build_ptrtoint ar info.i32 "ptr_to_int" info.builder in
-                                let new_int = Llvm.build_add ptr_to_int n "addptr" info.builder in
-                                Llvm.build_inttoptr new_int (Llvm.type_of ar) "int_to_ptr" info.builder)
-                                (*Llvm.build_gep ar [|(info.c32 0); n|] "arraytmp" info.builder) *)(*???+inbounds?*)
+                                 let ar = Llvm.build_load v "loadtmp" info.builder in
+                                 let ln = Llvm.array_length (Llvm.type_of ar) in
+                                 (*Printf.eprintf "%d\n" (ln);
+                                   (if (Llvm.array_length (Llvm.type_of ar) < 65) then*)
+                                    Llvm.build_in_bounds_gep ar [| n |] "arraytmp" info.builder
+                                  (*else
+                                    Llvm.build_in_bounds_gep ar [| (info.c32 0) |] "arraytmp" info.builder)*))
                              else (error "identifier is not an array";
                                    raise (TypeError line))
                            end
