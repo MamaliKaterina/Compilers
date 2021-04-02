@@ -32,7 +32,6 @@ def main ():
 			puti(x[i])
 		end
 		putc('\n')
-		%puts("\n")
 	end
 
 	int seed, i

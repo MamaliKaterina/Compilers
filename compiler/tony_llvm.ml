@@ -883,7 +883,7 @@ and compile_func ast =
     (* Verify *)
     Llvm_analysis.assert_valid_module the_module;
     (* Optimize*)
-    (*ignore (Llvm.PassManager.run_module the_module pm);*)
+    ignore (Llvm.PassManager.run_module the_module pm);
     (* Print out the IR *)
     Llvm.print_module "a.ll" the_module
     end
