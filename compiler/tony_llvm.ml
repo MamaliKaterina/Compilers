@@ -37,6 +37,8 @@ type llvm_info = {
   strcmp           : Llvm.llvalue;
   strcpy           : Llvm.llvalue;
   strcat           : Llvm.llvalue;
+  GC_init          : Llvm.llvalue;
+  GC_malloc        : Llvm.llvalue; 
 }
 
 (* Helping function that returns whether the types of two parameters t1, t2
@@ -259,6 +261,20 @@ let insert_built_in_function info nm =
           entry_info  = ENTRY_parameter inf_p
         } in
         (([p; p], Some(info.void)), Some(info.strcat)) )
+    | "GC_init" -> (([], Some(info.void)), Some(info.GC_init))
+    | "GC_malloc" -> (
+        let inf_p = {
+          parameter_type = TY_int;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
+        } in
+        let p = {
+          entry_id    = id_make "puti_var";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p
+        } in
+        (([p], Some(info.void)), Some(info.puti)) )
     | _ -> raise UnknownError
   ) in
   let f = {
