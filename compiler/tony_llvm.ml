@@ -37,8 +37,8 @@ type llvm_info = {
   strcmp           : Llvm.llvalue;
   strcpy           : Llvm.llvalue;
   strcat           : Llvm.llvalue;
-  GC_init          : Llvm.llvalue;
-  GC_malloc        : Llvm.llvalue; 
+  gc_init          : Llvm.llvalue;
+  gc_malloc        : Llvm.llvalue; 
 }
 
 (* Helping function that returns whether the types of two parameters t1, t2
@@ -261,7 +261,7 @@ let insert_built_in_function info nm =
           entry_info  = ENTRY_parameter inf_p
         } in
         (([p; p], Some(info.void)), Some(info.strcat)) )
-    | "GC_init" -> (([], Some(info.void)), Some(info.GC_init))
+    | "GC_init" -> (([], Some(info.void)), Some(info.gc_init))
     | "GC_malloc" -> (
         let inf_p = {
           parameter_type = TY_int;
@@ -270,11 +270,11 @@ let insert_built_in_function info nm =
           parameter_value = Llvm.const_pointer_null (Llvm.pointer_type info.i32);
         } in
         let p = {
-          entry_id    = id_make "puti_var";
+          entry_id    = id_make "gc_malloc_var";
           entry_scope = sco;
           entry_info  = ENTRY_parameter inf_p
         } in
-        (([p], Some(info.void)), Some(info.puti)) )
+        (([p], Some(Llvm.pointer_type info.i8)), Some(info.gc_malloc)) )
     | _ -> raise UnknownError
   ) in
   let f = {
@@ -461,7 +461,12 @@ and compile_expr info ast =
                                    (if not (a <> Null) || (Llvm.type_of t) <> info.i32 then (error "operator 'new' expected a valid type and an integer as operands";
                                                                                              raise (TypeError line))
                                     else (
-                                      Llvm.build_array_malloc (compile_type info a) t "arraytmp" info.builder ) )
+                                      (*Llvm.build_array_malloc (compile_type info a) t "arraynew" info.builder*)
+                                      let typofa = compile_type info a in
+                                      let sizeofa = Llvm.size_of typofa in
+                                      let siza32 = Llvm.build_bitcast sizeofa info.i32 "typesize" info.builder in
+                                      let gccall = Llvm.build_call (info.gc_malloc) [| Llvm.const_mul t siza32 |] "gcmalloccall" info.builder in
+                                      Llvm.build_bitcast gccall (Llvm.pointer_type typofa) "arraynew" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
                                     if (Llvm.classify_type (Llvm.element_type (Llvm.type_of t))) = Llvm.TypeKind.Struct then
@@ -477,7 +482,9 @@ and compile_expr info ast =
                                     and v2 = compile_expr info e2 in
                                     if (Llvm.type_of v2) = info.tony_list || (Llvm.element_type (Llvm.type_of v2)) = info.tony_list then (
                                         let struct_t = (Llvm.struct_type info.context (Array.of_list([(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)]))) in
-                                        let l_node = Llvm.build_malloc struct_t "list_node" info.builder in
+                                        (*let l_node = Llvm.build_malloc struct_t "list_node" info.builder in*)
+                                        let gccall = Llvm.build_call (info.gc_malloc) [| info.c32 16 |] "gcmalloccall" info.builder in
+                                        let l_node = Llvm.build_bitcast gccall (Llvm.pointer_type struct_t) "list_node" info.builder in
                                         let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
                                         let elem2 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 1) |] "elem_2" info.builder in
                                         let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder in
@@ -512,7 +519,9 @@ and compile_expr info ast =
                                               let v1_type = ( if btc = 1 then
                                                                 el_t
                                                               else (Llvm.type_of v1) ) in
-                                               let l_node = Llvm.build_malloc struct_t "list_node" info.builder in
+                                               (*let l_node = Llvm.build_malloc struct_t "list_node" info.builder in*)
+                                               let gccall = Llvm.build_call (info.gc_malloc) [| info.c32 16 |] "gcmalloccall" info.builder in
+                                               let l_node = Llvm.build_bitcast gccall (Llvm.pointer_type struct_t) "list_node" info.builder in
                                                let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
                                                let elem2 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 1) |] "elem_2" info.builder in
                                                let el_change = Llvm.build_bitcast v1 el_t "tmpbitcast1" info.builder in
@@ -851,6 +860,14 @@ and compile_func ast =
       Llvm.function_type (Llvm.void_type context) [| (Llvm.pointer_type i8); (Llvm.pointer_type i8) |] in
     let strcat =
       Llvm.declare_function "strcat" strcat_type the_module in
+    let gc_init_type =
+      Llvm.function_type (Llvm.void_type context) [| |] in
+    let gc_init =
+      Llvm.declare_function "GC_init" gc_init_type the_module in
+    let gc_malloc_type =
+      Llvm.function_type (Llvm.pointer_type i8) [| i32 |] in
+    let gc_malloc =
+      Llvm.declare_function "GC_malloc" gc_malloc_type the_module in
     (* Define and start and main function *)
     let main_type = Llvm.function_type i32 [| |] in
     let main = Llvm.declare_function "main" main_type the_module in
@@ -888,10 +905,13 @@ and compile_func ast =
       strcmp           = strcmp;
       strcpy           = strcpy;
       strcat           = strcat;
+      gc_init          = gc_init;
+      gc_malloc        = gc_malloc;
     } in
-    let function_list = ["puti"; "putb"; "puts"; "putc"; "geti"; "getb"; "gets"; "getc"; "abs"; "ord"; "chr"; "strlen"; "strcmp"; "strcpy"; "strcat"] in
+    let function_list = ["puti"; "putb"; "puts"; "putc"; "geti"; "getb"; "gets"; "getc"; "abs"; "ord"; "chr"; "strlen"; "strcmp"; "strcpy"; "strcat"; "GC_init"; "GC_malloc"] in
     List.iter (insert_built_in_function info) function_list;
     openScope i32;
+    Llvm.build_call (info.gc_init) [| |] "" info.builder;
     List.iter (compile_def info) defs;
     List.iter (compile_stmt info) stmts;
     ignore (Llvm.build_ret (c32 0) builder);
