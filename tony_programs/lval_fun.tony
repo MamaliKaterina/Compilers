@@ -19,7 +19,7 @@ def main():
 
   def int[][] g(int[][] x):
     int[][] u
-    int i
+    int i, j
 
     u := new int[] [10]
     for i := 0 ; i < 10 ; i := i + 1:

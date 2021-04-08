@@ -38,7 +38,7 @@ type llvm_info = {
   strcpy           : Llvm.llvalue;
   strcat           : Llvm.llvalue;
   gc_init          : Llvm.llvalue;
-  gc_malloc        : Llvm.llvalue; 
+  gc_malloc        : Llvm.llvalue;
 }
 
 (* Helping function that returns whether the types of two parameters t1, t2
@@ -348,7 +348,8 @@ let rec compile_func_def info ast =
                                                                      | None     -> info.void ) in
                                                         let par_ar = Array.of_list (params_type info [] formals) in
                                                         let ty = Llvm.function_type ret_t par_ar in
-                                                        let fu = Llvm.declare_function nm ty info.the_module in
+                                                        let scope = string_of_int !currentScope.sco_nesting in
+                                                        let fu = Llvm.declare_function (nm^scope) ty info.the_module in
                                                         let bb = Llvm.append_block info.context "entry" fu in
                                                         Llvm.position_at_end bb info.builder;
                                                         let cntr = ref 0 in
@@ -377,7 +378,8 @@ and compile_func_decl info ast =
                                                          | None    -> info.void ) in
                                             let par_ar = Array.of_list (params_type info [] formals) in
                                             let ty = Llvm.function_type ret_t par_ar in
-                                            let fu = Llvm.declare_function nm ty info.the_module in
+                                            let scope = string_of_int !currentScope.sco_nesting in
+                                            let fu = Llvm.declare_function (nm^scope) ty info.the_module in
                                             let cntr =  ref 0 in
                                             List.iter (sem_formal f fu cntr) formals;
                                             forwardFunction f;
@@ -406,7 +408,7 @@ and compile_expr info ast =
   (*cannot avoid raising an exception; otherwise, compiler throws error expecting type typ*)
   match ast with
   | E_atom a                    -> (let p = compile_atom info a in
-                                   match a with | A_call _ -> p
+                                   match a with | A_call _ -> Llvm.build_load p "loadtmp" info.builder
                                                 | _        -> Llvm.build_load p "loadtmp" info.builder)
   | E_int_const n               -> info.c32 n (*64-bit integers?*)
   | E_char_const c              -> info.c8 (Char.code c)
@@ -594,8 +596,12 @@ and compile_call info c =
            try
              let params_array = Array.of_list (List.map2 (check_param nm line info) exprs f.function_paramlist) in (*???*)
              (if ret_void then Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "" info.builder
-              else
-                 Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder)
+              else(
+                let call = Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder in
+                let p = Llvm.build_malloc (match f.function_result with Some (v) -> v) "call_result" info.builder in
+                ignore(Llvm.build_store call p info.builder);
+                p
+              ))
            with Invalid_argument _ ->
              error "fewer or more parameters than expected in call of function '%s'" nm;
              raise (TypeError line)
@@ -623,8 +629,8 @@ and compile_atom info ast =
                            let glb = Llvm.define_global name str info.the_module in
                            let first_elem_ptr = Llvm.build_gep glb [|(info.c32 0); (info.c32 0)|] "string" info.builder in
                            Llvm.define_global ptr_name first_elem_ptr info.the_module
-  | A_atom (a, e, line) -> let v = compile_atom info a
-                           and n = compile_expr info e in
+  | A_atom (a, e, line) -> let n = compile_expr info e
+                           and v = compile_atom info a in
                            (*Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of v)) (Llvm.string_of_lltype (Llvm.type_of n)));*)
                            begin
                              if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Pointer then
@@ -633,13 +639,14 @@ and compile_atom info ast =
                                else (
                                 (*we need to keep info about array limits and have a sem fault if the program tries to break it*)
                                  let ar = Llvm.build_load v "loadtmp" info.builder in
-                                 let ln = Llvm.array_length (Llvm.type_of ar) in
-                                 (*Printf.eprintf "%d\n" (ln);
+                                 (*let ln = Llvm.array_length (Llvm.type_of ar) in
+                                 Printf.eprintf "%d\n" (ln);
                                    (if (Llvm.array_length (Llvm.type_of ar) < 65) then*)
                                     Llvm.build_in_bounds_gep ar [| n |] "arraytmp" info.builder
                                   (*else
                                     Llvm.build_in_bounds_gep ar [| (info.c32 0) |] "arraytmp" info.builder)*))
                              else (error "identifier is not an array";
+                                   Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of v));
                                    raise (TypeError line))
                            end
   | A_call c            -> compile_call info c
@@ -672,7 +679,10 @@ and compile_stmt info ast =
                                                     if ret_ty <> info.void then (error "type of object to be returned incompatible with void type while this is a void function";
                                                                                  (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype ret_ty));*)
                                                                                  raise (TypeError line))
-                                                    else ignore (Llvm.build_ret_void info.builder)
+                                                    else ignore (Llvm.build_ret_void info.builder);
+                                                    let new_bb =  Llvm.insert_block info.context "after_exit" bb in
+                                                    Llvm.move_block_after bb new_bb;
+                                                    Llvm.position_at_end new_bb info.builder
     | S_return (e, line)                         -> let t = compile_expr info e in
                                                     let bb = Llvm.insertion_block info.builder in
                                                     let f = Llvm.block_parent bb in
@@ -869,7 +879,7 @@ and compile_func ast =
     let gc_malloc =
       Llvm.declare_function "GC_malloc" gc_malloc_type the_module in
     (* Define and start and main function *)
-    let main_type = Llvm.function_type i32 [| |] in
+    let main_type = Llvm.function_type void [| |] in
     let main = Llvm.declare_function "main" main_type the_module in
     let bb = Llvm.append_block context "entry" main in
     Llvm.position_at_end bb builder;
@@ -914,12 +924,12 @@ and compile_func ast =
     Llvm.build_call (info.gc_init) [| |] "" info.builder;
     List.iter (compile_def info) defs;
     List.iter (compile_stmt info) stmts;
-    ignore (Llvm.build_ret (c32 0) builder);
+    ignore (Llvm.build_ret_void builder);
     closeScope ();
     (* Verify *)
     Llvm_analysis.assert_valid_module the_module;
     (* Optimize*)
-    ignore (Llvm.PassManager.run_module the_module pm);
+    (*ignore (Llvm.PassManager.run_module the_module pm);*)
     (* Print out the IR *)
     Llvm.print_module "a.ll" the_module
     end

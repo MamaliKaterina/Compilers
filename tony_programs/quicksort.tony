@@ -15,8 +15,10 @@ def main ():
 			return qsort_aux(lt, pivot # qsort_aux(ge, rest))
 		end
 
+
 		return qsort_aux(l, nil)
 	end
+
 
 	def writeList (char[] msg; list[int] l):
 		bool more
@@ -29,10 +31,12 @@ def main ():
 		puts("\n")
 	end
 
+
 	int seed, i
 	list[int] l
 
 	seed := 65
+
 	for i := 0, l := nil; i < 16; i := i+1:
 		seed := (seed * 137 + 220 + i) mod 101
 		l := seed # l

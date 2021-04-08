@@ -34,13 +34,16 @@ def main ():
 		putc('\n')
 	end
 
-	int seed, i
+	int seed, i, j
 	int[] x
 
 	x := new int[16]
 	seed := 65
 	for i := 0; i < 16; i := i+1:
 		seed := (seed * 137 + 220 + i) mod 101
+		for j := 0; j<10; j := j+1:
+			skip
+		end
 		x[i] := seed
 	end
 	writeArray("Initial array: ", 16, x)
