@@ -1,6 +1,6 @@
 def debugging ():
  
-	def writeList (list[bool] l):
+	<*def writeList (list[bool] l):
 		bool more
 		
 		puts("[")
@@ -38,4 +38,21 @@ def debugging ():
 	writeArray(b)
 	l := true # false # true # false # nil
 	writeList(l)
+
+	list[list[int]] x
+
+	%x := nil
+  	x := nil # nil*>
+
+	def int f(int a; int b):
+		def int h11():
+			a := a + b
+			return a
+		end
+
+		return h11()
+	end
+
+	puti( f(2, 1) )
+	puts("\n")
 end
