@@ -467,7 +467,8 @@ and compile_expr info ast =
                                       let typofa = compile_type info a in
                                       let sizeofa = Llvm.size_of typofa in
                                       let siza32 = Llvm.build_bitcast sizeofa info.i32 "typesize" info.builder in
-                                      let gccall = Llvm.build_call (info.gc_malloc) [| Llvm.const_mul t siza32 |] "gcmalloccall" info.builder in
+                                      let mallocsize = Llvm.build_mul t siza32 "mallocsize" info.builder in
+                                      let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] "gcmalloccall" info.builder in
                                       Llvm.build_bitcast gccall (Llvm.pointer_type typofa) "arraynew" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
@@ -699,6 +700,9 @@ and compile_stmt info ast =
                                                       let new_t = if btc > 0 then Llvm.build_bitcast t ret_ty "tmpbitcast" info.builder else t in
                                                       (*(Printf.eprintf "%s\n%s\n" (Llvm.string_of_lltype (Llvm.type_of new_t)) (Llvm.string_of_lltype ret_ty));*)
                                                       ignore (Llvm.build_ret new_t info.builder) );
+                                                    (*if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
+                                                                                        raise (TypeError line))
+                                                    else ignore (Llvm.build_ret t info.builder);*)
                                                     let new_bb =  Llvm.insert_block info.context "after_return" bb in
                                                     Llvm.move_block_after bb new_bb;
                                                     Llvm.position_at_end new_bb info.builder
