@@ -9,7 +9,7 @@ def main():   % no "err" should be printed!
     if nil?(nil):
       y := nil
     else:
-      puts("err\n")
+      puts("err1\n")
     end
     return y
   end
@@ -22,25 +22,28 @@ def main():   % no "err" should be printed!
 
   x := f() # nil
   if not nil?(head(x)):
-    puts("err\n")
+    puts("err2\n")
   end
 
   if not nil?(g(nil)):
-    puts("err\n")
+    puts("err3\n")
   end
 
   x := h(head(x))
   if nil?(x):
-    puts("err\n")
+    puts("err4\n")
   end
+
   if not nil?(head(x)):
-    puts("err\n")
+    puts("err5\n")
   end
+
   if nil?(tail(x)):
-    puts("err\n")
+    puts("err6\n")
   end
+
   if not nil?(head(tail(x))):
-    puts("err\n")
+    puts("err7\n")
   end
 
   puts("If any \"err\" above, then WRONG! If you do not see this message, then also WRONG!\n")

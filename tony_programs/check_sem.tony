@@ -12,8 +12,8 @@ def check_llvm():
 	c := nil
 	%c := nil # c
 	b := 56 # 57 # nil
-	t := tail(a)
-	t := tail(b)
+	t := tail(a) %segmentation fault
+	%t := tail(b)
 	%b := nil # nil # nil
 	%t := tail(nil)
 	c := a # nil

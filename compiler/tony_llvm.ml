@@ -547,7 +547,8 @@ and compile_expr info ast =
                                       let typofa = compile_type info a in
                                       let sizeofa = Llvm.size_of typofa in
                                       let siza32 = Llvm.build_bitcast sizeofa info.i32 "typesize" info.builder in
-                                      let gccall = Llvm.build_call (info.gc_malloc) [| Llvm.const_mul t siza32 |] "gcmalloccall" info.builder in
+                                      let mallocsize = Llvm.build_mul t siza32 "mallocsize" info.builder in
+                                      let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] "gcmalloccall" info.builder in
                                       Llvm.build_bitcast gccall (Llvm.pointer_type typofa) "arraynew" info.builder ) )
   | E_nil                       -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line)          -> (let t = compile_expr info e in
@@ -563,14 +564,17 @@ and compile_expr info ast =
   | E_cons (e1, e2, line)       -> (let v1 = compile_expr info e1
                                     and v2 = compile_expr info e2 in
                                     if (Llvm.type_of v2) = info.tony_list || (Llvm.element_type (Llvm.type_of v2)) = info.tony_list then (
-                                        let struct_t = (Llvm.struct_type info.context (Array.of_list([(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)]))) in
+                                        let ptr_v1 = if v1 = Llvm.const_pointer_null info.tony_list then
+                                                     Llvm.build_bitcast v1 (Llvm.pointer_type (Llvm.type_of v1)) "tmpbitcast" info.builder
+                                                     else v1 in
+                                        let struct_t = (Llvm.struct_type info.context (Array.of_list([(Llvm.type_of ptr_v1); (Llvm.pointer_type info.tony_list)]))) in
                                         (*let l_node = Llvm.build_malloc struct_t "list_node" info.builder in*)
                                         let gccall = Llvm.build_call (info.gc_malloc) [| info.c32 16 |] "gcmalloccall" info.builder in
                                         let l_node = Llvm.build_bitcast gccall (Llvm.pointer_type struct_t) "list_node" info.builder in
                                         let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
                                         let elem2 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 1) |] "elem_2" info.builder in
                                         let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast" info.builder in
-                                        ignore (Llvm.build_store v1 elem1 info.builder);
+                                        ignore (Llvm.build_store ptr_v1 elem1 info.builder);
                                         ignore (Llvm.build_store ptr_change elem2 info.builder);
                                         l_node
                                     )
@@ -746,7 +750,7 @@ and compile_atom info ast =
                                   (*else
                                     Llvm.build_in_bounds_gep ar [| (info.c32 0) |] "arraytmp" info.builder)*))
                              else (error "identifier is not an array";
-                                   Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of v));
+                                   (*Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of v));*)
                                    raise (TypeError line))
                            end
   | A_call c            -> compile_call info c
@@ -788,10 +792,17 @@ and compile_stmt info ast =
                                                     let f = Llvm.block_parent bb in
                                                     let f_ty = Llvm.type_of f in
                                                     let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
-                                                    if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
-                                                                                        (*(Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));*)
+                                                    let (eq, btc) = equal_types info (Llvm.type_of t) ret_ty in
+                                                    if not(eq) then (error "type of object to be returned incompatible with return type of function";
+                                                                      (*(Printf.eprintf "%s\n%s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype ret_ty));*)
+                                                                      raise (TypeError line))
+                                                    else (
+                                                      let new_t = if btc > 0 then Llvm.build_bitcast t ret_ty "tmpbitcast" info.builder else t in
+                                                      (*(Printf.eprintf "%s\n%s\n" (Llvm.string_of_lltype (Llvm.type_of new_t)) (Llvm.string_of_lltype ret_ty));*)
+                                                      ignore (Llvm.build_ret new_t info.builder) );
+                                                    (*if (Llvm.type_of t) <> ret_ty then (error "type of object to be returned incompatible with return type of function";
                                                                                         raise (TypeError line))
-                                                    else ignore (Llvm.build_ret t info.builder);
+                                                    else ignore (Llvm.build_ret t info.builder);*)
                                                     let new_bb =  Llvm.insert_block info.context "after_return" bb in
                                                     Llvm.move_block_after bb new_bb;
                                                     Llvm.position_at_end new_bb info.builder
