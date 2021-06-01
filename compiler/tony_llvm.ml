@@ -100,6 +100,72 @@ let rec equal_types info x y =
     )
   )
 
+(*Needs changing, what about my child-functions*)
+let malloc_outer_vars_struct mystruct info f depth =
+  match f.outer_scope_vars with
+  | None -> None
+  | Some vars ->
+  begin
+    let vars_struct = Llvm.build_malloc (Llvm.element_type vars) "vars_struct" info.builder in
+  let rec get_struct_at_depth s d =
+    (match d with
+     | 1 -> s
+     | _ -> (let next_struct_ptr = Llvm.build_struct_gep s 0 "elem_ptr" info.builder in
+              get_struct_at_depth (Llvm.build_load next_struct_ptr "next_struct" info.builder) (d-1))
+    ) in
+  let d = (!currentScope.sco_nesting - depth) in
+  (*(Printf.eprintf "%d %d % d\n" (d) (!currentScope.sco_nesting) (depth));*)
+    (*(Printf.eprintf "%d %d %s\n" (depth) (d) (Llvm.string_of_lltype vars) );*)
+  if d == 0 || depth == -1 then (
+    (*Here i can access the llvalues of my target variables as i am in the same function*)
+    (*First element a ptr to the struct of the 'parent' function*)
+    let off =
+      (match mystruct with
+        | Some st ->
+          (let dest_ptr = Llvm.build_struct_gep vars_struct 0 "dest_elem_ptr_1" info.builder in
+           (*let strct = Llvm.build_load st "struct" info.builder in*)
+           ignore(Llvm.build_store st dest_ptr info.builder); 1)
+        | None -> 0 ) in
+    (*The rest of the elements are the variables of the parent function see-able from this function*)
+    let store_vars info v =
+      (*(Printf.eprintf "%d %d\n" (v.variable_offset) (off) );*)
+      (let dest_ptr = Llvm.build_struct_gep vars_struct (v.variable_offset+off) "dest_elem_ptr_2" info.builder in
+      Llvm.build_store v.variable_value dest_ptr info.builder
+        ) in
+      List.map (store_vars info) f.outer_scope_list;
+    Some (vars_struct)
+  )
+  else(
+    (*In this case, my variables are in the struct of calling function
+      I don't see all the variables of the calling function as it was declared AFTER me*)
+    let correct_scope_struct = get_struct_at_depth (match mystruct with |Some s -> s) (d) in
+    (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of correct_scope_struct)));*)
+    let no_vars = List.length f.outer_scope_list in
+    let rec store_vars n =
+      (match n with
+        | 0 -> ()
+        | _ -> (let dest_ptr = Llvm.build_struct_gep vars_struct (n-1) "dest_elem_ptr" info.builder in
+                let source_ptr = Llvm.build_struct_gep correct_scope_struct (n-1) "source_ptr" info.builder in
+                let var = Llvm.build_load source_ptr "var_ptr" info.builder in
+                ignore(Llvm.build_store var dest_ptr info.builder);
+                store_vars (n-1) )
+        ) in
+    store_vars (no_vars+1);
+    Some (vars_struct) )
+  end
+
+let get_struct_var info f_opt e v_off =
+  let rec get_struct_at_depth strct d =
+    (match d with
+     | 1 -> strct
+     | _ -> (let next_struct_ptr = Llvm.build_struct_gep strct 0 "elem_ptr" info.builder in
+             get_struct_at_depth (Llvm.build_load next_struct_ptr "next_struct" info.builder) (d-1)) ) in
+  match f_opt with
+  | Some fu -> (let depth = (!currentScope).sco_nesting - e.entry_scope.sco_nesting in
+                let strct = get_struct_at_depth (Llvm.param fu 0) depth in
+                let off = (if e.entry_scope.outer_scope_vars == None then 0 else 1) in
+                let elem_ptr = Llvm.build_struct_gep strct (v_off+off) "elem_ptr" info.builder in
+                Llvm.build_load elem_ptr "elem" info.builder)
 
 
 let insert_built_in_function info nm =
@@ -109,8 +175,10 @@ let insert_built_in_function info nm =
     sco_parent = None;
     sco_nesting = -1;
     sco_entries = [];
-    sco_negofs = 0;
-    return_value = None
+    sco_negofs = 8;
+    return_value = None;
+    outer_scope_vars = None;
+    current_function = None
   } in
   let ((par, res), var) = (
     match nm with
@@ -284,7 +352,9 @@ let insert_built_in_function info nm =
     function_result = res;
     function_pstatus = PARDEF_DEFINE;
     function_initquad = 0;
-    function_llvalue = var
+    function_llvalue = var;
+    outer_scope_list = get_current_vars_list ();
+    outer_scope_vars = get_current_vars info.context
   } in
   ignore (newEntry id (ENTRY_function f) false)
 
@@ -309,7 +379,7 @@ let compile_formal info f fu cntr formal =
                                               let par_value = Llvm.param fu !cntr in
                                               ignore (newParameter true f PASS_BY_REFERENCE t new_id par_value);
                                               cntr := !cntr + 1
-                                            in List.iter callnewParam slist )
+                                              in List.iter callnewParam slist )
 
 let sem_formal f fu cntr formal =
   match formal with
@@ -328,12 +398,14 @@ let sem_formal f fu cntr formal =
 let rec params_type info res frm =
   match frm with
   | [] -> List.rev res
-  | hd::tl -> (match hd with
-               | Formal (parPas, t, nms) -> let ty = compile_type info t in
-                                            let ty = (if parPas = BY_ref then (Llvm.pointer_type ty)
-                                                      else ty ) in (*what if an array is passed by ref?*)
-                 let new_res = List.rev_append (List.rev_map (fun _ -> ty) nms) res in
-                 params_type info new_res tl)
+  | hd::tl ->
+    (match hd with
+      | Formal (parPas, t, nms) ->
+        let ty = compile_type info t in
+        let ty = (if parPas = BY_ref then (Llvm.pointer_type ty)
+                                     else ty ) in (*what if an array is passed by ref?*)
+        let new_res = List.rev_append (List.rev_map (fun _ -> ty) nms) res in
+        params_type info new_res tl)
 
 let rec compile_func_def info ast =
   match ast with
@@ -342,18 +414,25 @@ let rec compile_func_def info ast =
                                                         let next_bb = Llvm.append_block info.context "return" cur_f in
                                                         ignore (Llvm.build_br next_bb info.builder);
                                                         let id = id_make nm in
-                                                        let f = newFunction id true in
+                                                        let f = newFunction id info.context true in
                                                         let ret_t = (match tOp with
                                                                      | Some (t) -> compile_type info t
                                                                      | None     -> info.void ) in
-                                                        let par_ar = Array.of_list (params_type info [] formals) in
+                                                        let functions_actual_params = params_type info [] formals in
+                                                        let (par_ar, params_start) =
+                                                          (match (get_current_vars info.context) with
+                                                           | Some vars -> (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype (vars)));*)
+                                                             (Array.of_list (vars::functions_actual_params), 1)
+                                                           | None -> (Array.of_list (functions_actual_params), 0)
+                                                          ) in
                                                         let ty = Llvm.function_type ret_t par_ar in
                                                         let scope = string_of_int !currentScope.sco_nesting in
                                                         let fu = Llvm.declare_function (nm^scope) ty info.the_module in
                                                         let bb = Llvm.append_block info.context "entry" fu in
                                                         Llvm.position_at_end bb info.builder;
-                                                        let cntr = ref 0 in
-                                                        openScope ret_t;
+                                                        let cntr = ref params_start in (*Is this the right value? First param is the outer_scope_vars_struct*)
+                                                        openScope ret_t (Some fu) info.context;
+                                                        (*Compile outer_scope_vars*)
                                                         List.iter (compile_formal info f fu cntr) formals;
                                                         endFunctionHeader f fu ret_t;
                                                         List.iter (compile_def info) defs;
@@ -372,10 +451,11 @@ and compile_func_decl info ast =
   (*must keep the fact that the function must be properly defined!!!*)
   match ast with
   | Func_decl (Header(tOp, nm, formals)) -> let id = id_make nm in
-                                            let f = newFunction id true in
+                                            let f = newFunction id info.context true in
                                             let ret_t = (match tOp with
                                                          | Some(t) -> compile_type info t
                                                          | None    -> info.void ) in
+                                            (*Here i dont know the outer_scope_vars_struct, will this be a problem?*)
                                             let par_ar = Array.of_list (params_type info [] formals) in
                                             let ty = Llvm.function_type ret_t par_ar in
                                             let scope = string_of_int !currentScope.sco_nesting in
@@ -588,13 +668,27 @@ and compile_call info c =
   | C_call(nm, exprs, line) ->
     let id = id_make nm in
     let e = lookupEntry id LOOKUP_ALL_SCOPES true in
+    let depth = e.entry_scope.sco_nesting in
+    (*)(Printf.eprintf "depth %d\n" (depth));*)
     (match e.entry_info with
     | ENTRY_function(f) ->
      if not (f.function_isForward) then
        let ret_void = (f.function_result = Some (info.void)) in
          begin
            try
-             let params_array = Array.of_list (List.map2 (check_param nm line info) exprs f.function_paramlist) in (*???*)
+             let formal_params_array = List.map2 (check_param nm line info) exprs f.function_paramlist in (*???*)
+             let params_array =
+               (match !currentScope.outer_scope_vars with
+                | None ->
+                  (let mystruct = None in
+                   match malloc_outer_vars_struct mystruct info f depth with
+                   | None -> Array.of_list (formal_params_array)
+                   | Some outer_vars_struct -> Array.of_list (outer_vars_struct::formal_params_array))
+                | Some vars ->
+                    (let mystruct = Some (match !currentScope.current_function with |Some fu -> Llvm.param fu 0) in
+                     match malloc_outer_vars_struct mystruct info f depth with
+                     | None -> Array.of_list (formal_params_array)
+                     | Some outer_vars_struct -> Array.of_list (outer_vars_struct::formal_params_array)) ) in
              (if ret_void then Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "" info.builder
               else(
                 let call = Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder in
@@ -616,9 +710,15 @@ and compile_atom info ast =
   | A_var (v, line)     -> let id = id_make v in
                            let e = lookupEntry id LOOKUP_ALL_SCOPES true in
                            (match e.entry_info with
-                            | ENTRY_variable(v)  -> v.variable_value
-                            | ENTRY_parameter(v) -> v.parameter_value
-                            | ENTRY_temporary(v) -> v.temporary_value
+                            | ENTRY_variable(v)  ->
+                              (if e.entry_scope.sco_nesting = (!currentScope).sco_nesting then v.variable_value
+                               else get_struct_var info (!currentScope).current_function e v.variable_offset)
+                            | ENTRY_parameter(v) ->
+                              (if e.entry_scope.sco_nesting = (!currentScope).sco_nesting then v.parameter_value
+                               else get_struct_var info (!currentScope).current_function e v.parameter_offset)
+                            | ENTRY_temporary(v) ->
+                              (if e.entry_scope.sco_nesting = (!currentScope).sco_nesting then v.temporary_value
+                               else get_struct_var info (!currentScope).current_function e v.temporary_offset)
                             | _                  -> error "identifier '%s' is neither variable nor parameter" v;
                                                     raise (TypeError line) )
   | A_string_const str  -> let str = info.make_string str in (*when reading the string from input it does not contain the white character in the end?*)
@@ -658,7 +758,7 @@ and compile_simple info ast =
                              and y = compile_expr info e in
                              let (eq, btc) = equal_types info (Llvm.element_type (Llvm.type_of x)) (Llvm.type_of y) in
                              if not(eq) then (error "lvalue and rvalue in assignment are not of the same type";
-                                              (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of new_y)));*)
+                                              (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));
                                               raise (TypeError line))
                              else (
                                let new_y = (if btc = 2 then Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder
@@ -920,7 +1020,7 @@ and compile_func ast =
     } in
     let function_list = ["puti"; "putb"; "puts"; "putc"; "geti"; "getb"; "gets"; "getc"; "abs"; "ord"; "chr"; "strlen"; "strcmp"; "strcpy"; "strcat"; "GC_init"; "GC_malloc"] in
     List.iter (insert_built_in_function info) function_list;
-    openScope i32;
+    openScope i32 None context;
     Llvm.build_call (info.gc_init) [| |] "" info.builder;
     List.iter (compile_def info) defs;
     List.iter (compile_stmt info) stmts;

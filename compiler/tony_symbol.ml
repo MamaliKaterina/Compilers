@@ -22,13 +22,16 @@ type scope = {
   sco_nesting         : int;
   mutable sco_entries : entry list;
   mutable sco_negofs  : int;
-  return_value        : Llvm.lltype option
+  return_value        : Llvm.lltype option;
+  outer_scope_vars    : Llvm.lltype option;
+  current_function    : Llvm.llvalue option
 }
 
 and variable_info = {
   variable_type         : typ;
   variable_offset       : int;
-  variable_value        : Llvm.llvalue
+  variable_value        : Llvm.llvalue; (*must be a ptr*)
+  variable_scope        : int
 }
 
 and function_info = {
@@ -38,7 +41,9 @@ and function_info = {
   mutable function_result    : Llvm.lltype option;
   mutable function_pstatus   : param_status;
   mutable function_initquad  : int;
-  mutable function_llvalue   : Llvm.llvalue option
+  mutable function_llvalue   : Llvm.llvalue option;
+  mutable outer_scope_list   : variable_info list;
+  mutable outer_scope_vars   : Llvm.lltype option
 }
 
 and parameter_info = {
@@ -69,14 +74,16 @@ and entry = {
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
 let start_positive_offset = 8
-let start_negative_offset = 0
+let start_negative_offset = -1
 
 let the_outer_scope = {
   sco_parent = None;
-  sco_nesting = 0;
+  sco_nesting = -1;
   sco_entries = [];
   sco_negofs = start_negative_offset;
-  return_value = None
+  return_value = None;
+  outer_scope_vars = None;
+  current_function = None
 }
 
 let no_entry id = {
@@ -95,15 +102,52 @@ let initSymbolTable size =
   tab := H.create size;
   currentScope := the_outer_scope
 
+let get_current_vars context =
+  let entries = List.rev (!currentScope.sco_entries) in
+  let get_entry e =
+    (match e.entry_info with
+     | ENTRY_variable v -> Some ((Llvm.type_of v.variable_value))
+     | ENTRY_parameter p -> Some ((Llvm.type_of p.parameter_value)) (*??? ref vars*)
+     | _ -> None
+    ) in
+  let outer_scope_params =
+    (match !currentScope.outer_scope_vars with
+     | Some v -> v::(List.filter_map get_entry entries)
+     | None -> (List.filter_map get_entry entries) ) in
+  match outer_scope_params with
+  | [] -> None
+  | _ -> Some (Llvm.pointer_type (Llvm.struct_type context (Array.of_list outer_scope_params)))
+
+let get_current_vars_list () =
+  let entries = List.rev (!currentScope.sco_entries) in
+  let get_entry e =
+    (match e.entry_info with
+     | ENTRY_variable v -> Some v
+     | ENTRY_parameter p ->
+       (let v = {
+         variable_type = p.parameter_type;
+         variable_offset = p.parameter_offset;
+         variable_value = p.parameter_value;
+         variable_scope = !currentScope.sco_nesting
+        } in
+        Some v)
+     | _ -> None
+    ) in
+  List.filter_map get_entry entries
+
+
 (*for us a scope is a function... useful to keep return value*)
-let openScope rv =
+let openScope rv fu context =
   let sco = {
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
     sco_entries = [];
     sco_negofs = start_negative_offset;
-    return_value = Some rv
+    return_value = Some rv;
+    outer_scope_vars = get_current_vars context;
+    current_function = fu
   } in
+  (*)(Printf.eprintf "%d\n" (sco.sco_nesting) );*)
   currentScope := sco
 
 let closeScope () =
@@ -135,6 +179,7 @@ let newEntry id inf err =
     } in
     H.add !tab id e;
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
+    (*)(Printf.eprintf "%s %d\n" (id_name id) (e.entry_scope.sco_nesting) );*)
     e
   with Failure_NewEntry e ->
     error "duplicate identifier '%a'" pretty_id id;
@@ -165,15 +210,17 @@ let lookupEntry id how err =
     lookup ()
 
 let newVariable err typ id v =
-  !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
+  !currentScope.sco_negofs <- !currentScope.sco_negofs + 1;
   let inf = {
     variable_type = typ;
     variable_offset = !currentScope.sco_negofs;
-    variable_value = v
+    variable_value = v;
+    variable_scope = !currentScope.sco_nesting
   } in
   newEntry id (ENTRY_variable inf) err (*checking for double par happens inside newEntry func*)
 
-let newFunction id err =
+
+let newFunction id context err =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in (*we don't want to find it!*)
     match e.entry_info with
@@ -194,7 +241,9 @@ let newFunction id err =
       function_result = None;
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0;
-      function_llvalue = None
+      function_llvalue = None;
+      outer_scope_list = get_current_vars_list ();
+      outer_scope_vars = get_current_vars context
     } in
     newEntry id (ENTRY_function inf) false
 
@@ -276,19 +325,19 @@ let endFunctionHeader e fval typ =
       | PARDEF_DEFINE ->
         inf.function_llvalue <- Some fval;
         inf.function_result <- Some typ;
-        let offset = ref start_positive_offset in
+        let offset = ref (start_negative_offset+1) in
         let fix_offset e =
           match e.entry_info with
           | ENTRY_parameter inf ->
             inf.parameter_offset <- !offset;
-            let size =
+            (*let size =
               match inf.parameter_mode with
               | PASS_BY_VALUE     -> sizeOfType inf.parameter_type
-              | PASS_BY_REFERENCE -> 2 in
-            offset := !offset + size
+              | PASS_BY_REFERENCE -> 2 in*)
+            offset := !offset + 1
           | _ ->
             error "Cannot fix offset to a non parameter" in
-        List.iter fix_offset inf.function_paramlist;
+        List.iter fix_offset (List.rev inf.function_paramlist);
         inf.function_paramlist <- List.rev inf.function_paramlist
       | PARDEF_CHECK ->
         inf.function_llvalue <- Some fval;
