@@ -107,14 +107,14 @@ let malloc_outer_vars_struct mystruct info f depth =
   | Some vars ->
   begin
     let vars_struct = Llvm.build_malloc (Llvm.element_type vars) "vars_struct" info.builder in
-  let rec get_struct_at_depth s d =
+    let rec get_struct_at_depth s d =
     (match d with
      | 1 -> s
      | _ -> (let next_struct_ptr = Llvm.build_struct_gep s 0 "elem_ptr" info.builder in
               get_struct_at_depth (Llvm.build_load next_struct_ptr "next_struct" info.builder) (d-1))
     ) in
   let d = (!currentScope.sco_nesting - depth) in
-  (*(Printf.eprintf "%d %d % d\n" (d) (!currentScope.sco_nesting) (depth));*)
+    (*(Printf.eprintf "%d %d % d\n" (d) (!currentScope.sco_nesting) (depth));*)
     (*(Printf.eprintf "%d %d %s\n" (depth) (d) (Llvm.string_of_lltype vars) );*)
   if d == 0 || depth == -1 then (
     (*Here i can access the llvalues of my target variables as i am in the same function*)
@@ -131,7 +131,7 @@ let malloc_outer_vars_struct mystruct info f depth =
       (*(Printf.eprintf "%d %d\n" (v.variable_offset) (off) );*)
       (let dest_ptr = Llvm.build_struct_gep vars_struct (v.variable_offset+off) "dest_elem_ptr_2" info.builder in
       Llvm.build_store v.variable_value dest_ptr info.builder
-        ) in
+      ) in
       List.map (store_vars info) f.outer_scope_list;
     Some (vars_struct)
   )
@@ -140,7 +140,7 @@ let malloc_outer_vars_struct mystruct info f depth =
       I don't see all the variables of the calling function as it was declared AFTER me*)
     let correct_scope_struct = get_struct_at_depth (match mystruct with |Some s -> s) (d) in
     (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of correct_scope_struct)));*)
-    let no_vars = List.length f.outer_scope_list in
+    let no_vars = f.vars_length in
     let rec store_vars n =
       (match n with
         | 0 -> ()
@@ -150,7 +150,7 @@ let malloc_outer_vars_struct mystruct info f depth =
                 ignore(Llvm.build_store var dest_ptr info.builder);
                 store_vars (n-1) )
         ) in
-    store_vars (no_vars+1);
+    store_vars (no_vars);
     Some (vars_struct) )
   end
 
@@ -345,6 +345,7 @@ let insert_built_in_function info nm =
         (([p], Some(Llvm.pointer_type info.i8)), Some(info.gc_malloc)) )
     | _ -> raise UnknownError
   ) in
+  let (outer_scope_vars, vars_length) = get_current_vars info.context in
   let f = {
     function_isForward = false;
     function_paramlist = par;
@@ -354,7 +355,8 @@ let insert_built_in_function info nm =
     function_initquad = 0;
     function_llvalue = var;
     outer_scope_list = get_current_vars_list ();
-    outer_scope_vars = get_current_vars info.context
+    outer_scope_vars = outer_scope_vars;
+    vars_length = vars_length
   } in
   ignore (newEntry id (ENTRY_function f) false)
 
@@ -366,11 +368,13 @@ let compile_formal info f fu cntr formal =
                                 (match parPas with
                                  | BY_val -> let callnewParam id =
                                               let new_id = id_make id in
+                                              Llvm.set_value_name id (Llvm.param fu !cntr);
+                                              (*let par_value = Llvm.param fu !cntr in*)
                                               let par_value = Llvm.build_malloc ty id info.builder in
                                               Llvm.set_value_name id (Llvm.param fu !cntr);
                                               ignore (Llvm.build_store (Llvm.param fu !cntr) par_value info.builder);
-                                              cntr := !cntr + 1;
-                                              ignore (newParameter true f PASS_BY_VALUE t new_id par_value)
+                                              ignore (newParameter true f PASS_BY_VALUE t new_id par_value);
+                                              cntr := !cntr + 1
                                             in List.iter callnewParam slist
                                 (*in ref vars do we need to use pointers? if we dont do anything, how will it behave according to calling convention*)
                                  | BY_ref -> let callnewParam id =
@@ -421,9 +425,9 @@ let rec compile_func_def info ast =
                                                         let functions_actual_params = params_type info [] formals in
                                                         let (par_ar, params_start) =
                                                           (match (get_current_vars info.context) with
-                                                           | Some vars -> (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype (vars)));*)
+                                                           | Some vars, _ -> (*(Printf.eprintf "%s\n" (Llvm.string_of_lltype (vars)));*)
                                                              (Array.of_list (vars::functions_actual_params), 1)
-                                                           | None -> (Array.of_list (functions_actual_params), 0)
+                                                           | None, _ -> (*(Printf.eprintf "Hi!\n" );*) (Array.of_list (functions_actual_params), 0)
                                                           ) in
                                                         let ty = Llvm.function_type ret_t par_ar in
                                                         let scope = string_of_int !currentScope.sco_nesting in
@@ -517,6 +521,7 @@ and compile_expr info ast =
                                    (if invalid_log_op info t1 t2 then
                                       (let opString = lg_as_string op in
                                        error "operator '%s' expected operands of same primitive type" opString;
+                                       (*(Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t1)) (Llvm.string_of_lltype (Llvm.type_of t2)) );*)
                                        raise (TypeError line))
                                     else (match op with
                                          | LO_eq 			      -> Llvm.build_icmp Llvm.Icmp.Eq t1 t2 "eqtmp" info.builder
@@ -689,7 +694,7 @@ and compile_call info c =
                    | None -> Array.of_list (formal_params_array)
                    | Some outer_vars_struct -> Array.of_list (outer_vars_struct::formal_params_array))
                 | Some vars ->
-                    (let mystruct = Some (match !currentScope.current_function with |Some fu -> Llvm.param fu 0) in
+                  (let mystruct = Some (match !currentScope.current_function with |Some fu -> Llvm.param fu 0) in
                      match malloc_outer_vars_struct mystruct info f depth with
                      | None -> Array.of_list (formal_params_array)
                      | Some outer_vars_struct -> Array.of_list (outer_vars_struct::formal_params_array)) ) in
@@ -762,7 +767,7 @@ and compile_simple info ast =
                              and y = compile_expr info e in
                              let (eq, btc) = equal_types info (Llvm.element_type (Llvm.type_of x)) (Llvm.type_of y) in
                              if not(eq) then (error "lvalue and rvalue in assignment are not of the same type";
-                                              (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));
+                                              (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.element_type (Llvm.type_of x))) (Llvm.string_of_lltype (Llvm.type_of y)));*)
                                               raise (TypeError line))
                              else (
                                let new_y = (if btc = 2 then Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder

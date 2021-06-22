@@ -43,7 +43,8 @@ and function_info = {
   mutable function_initquad  : int;
   mutable function_llvalue   : Llvm.llvalue option;
   mutable outer_scope_list   : variable_info list;
-  mutable outer_scope_vars   : Llvm.lltype option
+  mutable outer_scope_vars   : Llvm.lltype option;
+  mutable vars_length        : int
 }
 
 and parameter_info = {
@@ -115,8 +116,8 @@ let get_current_vars context =
      | Some v -> v::(List.filter_map get_entry entries)
      | None -> (List.filter_map get_entry entries) ) in
   match outer_scope_params with
-  | [] -> None
-  | _ -> Some (Llvm.pointer_type (Llvm.struct_type context (Array.of_list outer_scope_params)))
+  | [] -> (None, 0)
+  | _ -> (Some (Llvm.pointer_type (Llvm.struct_type context (Array.of_list outer_scope_params))), (List.length outer_scope_params))
 
 let get_current_vars_list () =
   let entries = List.rev (!currentScope.sco_entries) in
@@ -133,18 +134,19 @@ let get_current_vars_list () =
         Some v)
      | _ -> None
     ) in
-  List.filter_map get_entry entries
+   List.filter_map get_entry entries
 
 
 (*for us a scope is a function... useful to keep return value*)
 let openScope rv fu context =
+  let (outer_scope_vars, _) = get_current_vars context in
   let sco = {
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
     sco_entries = [];
     sco_negofs = start_negative_offset;
     return_value = Some rv;
-    outer_scope_vars = get_current_vars context;
+    outer_scope_vars = outer_scope_vars;
     current_function = fu
   } in
   (*)(Printf.eprintf "%d\n" (sco.sco_nesting) );*)
@@ -234,6 +236,7 @@ let newFunction id context err =
         error "duplicate identifier '%a'" pretty_id id;
       raise Exit
   with Not_found ->
+    let (outer_scope_vars, vars_length) = get_current_vars context in
     let inf = {
       function_isForward = false;
       function_paramlist = [];
@@ -243,7 +246,8 @@ let newFunction id context err =
       function_initquad = 0;
       function_llvalue = None;
       outer_scope_list = get_current_vars_list ();
-      outer_scope_vars = get_current_vars context
+      outer_scope_vars = outer_scope_vars;
+      vars_length = vars_length
     } in
     newEntry id (ENTRY_function inf) false
 
