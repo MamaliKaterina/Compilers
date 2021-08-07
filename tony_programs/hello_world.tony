@@ -1,3 +1,6 @@
 def hello ():
-puts("Hello world!\n")
+
+  int a
+  puts("Hello world!\n")
+
 end

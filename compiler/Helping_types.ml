@@ -107,6 +107,7 @@ let greater_eq v1 v2 =
 	| (M_char(c1), M_char(c2)) -> M_bool (c1 >= c2)
   | (M_bool(b1), M_bool(b2)) -> M_bool (b1 >= b2)
 *)
+
 let op_as_string op =
   match op with
   | O_plus  -> "+"
@@ -138,6 +139,7 @@ let rec print_typ t =
 	| TY_array (a) -> Printf.eprintf "TY_array of "; print_typ a
   | TY_list (l)	 -> Printf.eprintf "TY_list of "; print_typ l
 
+
 let rec sizeOfType t =
   match t with
   | TY_int     -> 2
@@ -149,3 +151,14 @@ let rec sizeOfType t =
 
 let equalType t1 t2 =
   t1 = t2
+
+let rec equal_typs t1 t2 =
+  match t1, t2 with
+  | (TY_int, TY_int) -> true
+  | (TY_char, TY_char) -> true
+  | (TY_bool, TY_bool) -> true
+  | (TY_array(a1), TY_array(a2)) -> equal_typs a1 a2
+  | (TY_list(Null), TY_list(_)) -> true
+  | (TY_list(_), TY_list(Null)) -> true
+  | (TY_list(l1), TY_list(l2)) -> equal_typs l1 l2
+  | _ -> false

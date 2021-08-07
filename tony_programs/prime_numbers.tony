@@ -1,7 +1,11 @@
 def main ():
 
+	int my_var, my_var2
+
 	def bool prime? (int n):
 		int i
+
+		my_var := 5
 
 		if n < 0:
 			return prime?(-n)
@@ -20,16 +24,17 @@ def main ():
 
 	def f():
 		int j
-
-		for j:= 0; j<9;j:=j+1:
+		for j:= 0; j<9; j:=j+1:
 				if true:
 						exit
 				end
 		end
-
 	end
 
 	int limit, number, counter
+
+	my_var := 0
+	puti(my_var) %should output 0
 
 	puts("Limit: ")
 	limit := geti()
@@ -49,6 +54,9 @@ def main ():
 			puts("\n")
 		end
 	end
+
+	puti(my_var) %should output 5
+
 	puts("\nTotal: ")  puti(counter)  puts("\n")
 
 end

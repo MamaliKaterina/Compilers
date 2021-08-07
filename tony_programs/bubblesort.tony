@@ -38,6 +38,7 @@ def main ():
 	int[] x
 
 	x := new int[16]
+	
 	seed := 65
 	for i := 0; i < 16; i := i+1:
 		seed := (seed * 137 + 220 + i) mod 101
