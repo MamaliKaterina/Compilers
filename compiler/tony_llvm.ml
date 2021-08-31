@@ -15,79 +15,64 @@ let invalid_log_op info t1 t2 =
   let i8 = info.i8 in
   let i1 = info.i1 in
   if a = b then
-  (match a with
-    | i32 -> false
-    | i8  -> false
+    (match a with
     | i1  -> false
+    | i8  -> false
+    | i32 -> false
     | _   -> true )
   else true
 
 (*Returns true if the two types can be considered equivalent*)
-let rec equal_types info x y =
+let rec equal_types info line x y =
   let x  = (if Llvm.classify_type x = Llvm.TypeKind.Pointer then Llvm.element_type x
             else x) in
   let y  = (if Llvm.classify_type y = Llvm.TypeKind.Pointer then Llvm.element_type y
             else y) in
-  if x = y then (true, 0) (*if they are not exactly the same type they still can be equivalent*)
+  if x = y then 0 (*if they are not exactly the same type they still can be equivalent*)
+  else if Llvm.classify_type x = Llvm.TypeKind.Struct && y = info.tony_list then 2
+  else if Llvm.classify_type y = Llvm.TypeKind.Struct && x = info.tony_list then 1
+  else if Llvm.classify_type x = Llvm.TypeKind.Struct && Llvm.classify_type y = Llvm.TypeKind.Struct then
+    let el1 = Array.get (Llvm.struct_element_types x) 0 in
+    let el2 = Array.get (Llvm.struct_element_types y) 0 in
+    equal_types info line el1 el2
   else (
-    if Llvm.classify_type x = Llvm.TypeKind.Struct && y = info.tony_list then (
-      let el = Array.get (Llvm.struct_element_types x) 0 in
-      if el <> info.tony_list && Llvm.classify_type el <> Llvm.TypeKind.Struct then (true, 2)
-      else (false, 0) )
-    else (
-      if Llvm.classify_type y = Llvm.TypeKind.Struct && x = info.tony_list then (
-        let el = Array.get (Llvm.struct_element_types y) 0 in
-        if el <> info.tony_list && Llvm.classify_type el <> Llvm.TypeKind.Struct then (true, 1)
-        else (false, 0) )
-      else (
-        if Llvm.classify_type x = Llvm.TypeKind.Struct && Llvm.classify_type y = Llvm.TypeKind.Struct then
-          let el1 = Array.get (Llvm.struct_element_types x) 0 in
-          let el2 = Array.get (Llvm.struct_element_types y) 0 in
-          equal_types info el1 el2
-        else (false, 0)
-      )
-    )
+    error "Not equivalent types";
+    raise (TypeError line)
   )
 
 (*Needs changing, what about my child-functions*)
 let malloc_outer_vars_struct current_struct info f depth =
   let d = (!currentScope.sco_nesting - depth) in
   if d = 0 then
-    begin
       (*first param of function is its struct*)
       let f_struct_type = Llvm.type_of (Llvm.param (match f.function_llvalue with | Some v -> v) 0) in
       let f_struct = Llvm.build_malloc (Llvm.element_type f_struct_type) "vars_struct" info.builder in
-      let off = (
+      let off =
         match current_struct with
         | None -> 0
-        | Some s -> (
+        | Some s ->
             let previous_struct_ptr = Llvm.build_struct_gep f_struct 0 "prev_struct_ptr" info.builder in
             ignore (Llvm.build_store s previous_struct_ptr info.builder);
             1
-          )
-      ) in
-      let store_var v = (
+      in
+      let store_var v =
         let var_value = (match v.variable_value with Some v -> v) in
-        (Printf.eprintf "offset %d\n" (v.variable_offset));
         let dest_ptr = Llvm.build_struct_gep f_struct (v.variable_offset+off) "dest_elem_ptr" info.builder in
         ignore(Llvm.build_store var_value dest_ptr info.builder)
-      ) in
+      in
       List.iter store_var (get_current_vars_list ());
       f_struct
-    end
   else
-    begin
-      let rec get_struct_at_depth strct depth = (
+      let rec get_struct_at_depth strct depth =
         match depth with
         | 1 -> strct
-        | d -> (
+        | d ->
           let new_strct = Llvm.build_struct_gep strct 0 "elem_ptr" info.builder in
           get_struct_at_depth (Llvm.build_load new_strct "next_struct" info.builder) (d-1)
-          )
-      ) in
+      in (
       match current_struct with
-      | Some s -> get_struct_at_depth s d
-    end
+      | Some s -> get_struct_at_depth s d )
+
 
 
 let get_current_struct line =
@@ -117,7 +102,6 @@ let get_struct_var line info e var_offset =
       let off = if e.entry_scope.sco_nesting = 0 then 0 else 1 in
       let elem_ptr = Llvm.build_struct_gep strct (var_offset+off) "elem_ptr" info.builder in
       let val_ptr = Llvm.build_load elem_ptr "elem" info.builder in
-      (*Llvm.build_load val_ptr "val" info.builder*)
       val_ptr
     )
 
@@ -190,7 +174,31 @@ let insert_built_in_function info nm =
     | "geti" -> (([], Some(TY_int)), Some(info.geti))
     | "getc" -> (([], Some(TY_char)), Some(info.getc))
     | "getb" -> (([], Some(TY_bool)), Some(info.getb))
-    | "gets" -> (([], Some(TY_array(TY_char))), Some(info.gets))
+    | "gets" -> (
+        let inf_p1 = {
+          parameter_type = TY_int;
+          parameter_offset = 0;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Some (Llvm.const_pointer_null (Llvm.pointer_type info.i32));
+        } in
+        let p1 = {
+          entry_id    = id_make "gets_var1";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p1
+        } in
+        let inf_p2 = {
+          parameter_type = TY_array (TY_char);
+          parameter_offset = 1;
+          parameter_mode = PASS_BY_VALUE;
+          parameter_value = Some (Llvm.const_pointer_null (Llvm.pointer_type (Llvm.pointer_type info.i8)));
+        } in
+        let p2 = {
+          entry_id    = id_make "gets_var2";
+          entry_scope = sco;
+          entry_info  = ENTRY_parameter inf_p2
+        } in
+        (([p1; p2], Some(Null)), Some(info.gets))
+      )
     | "abs" -> (
         let inf_p = {
           parameter_type = TY_int;
@@ -312,51 +320,41 @@ let insert_built_in_function info nm =
 
 
 
-let compile_formal info f fu cntr formal =
+let compile_formal info f fu offset index formal =
   match formal with
   | Formal(parPas, t, slist) ->
-    let ty = typ_to_lltype info t in (
-      match parPas with
-      | BY_val ->
-        let callnewParam id = (
+    let ty = typ_to_lltype info t in
+    match parPas with
+    | BY_val ->
+        let callnewParam i id = (
           let new_id = id_make id in
-          Llvm.set_value_name id (Llvm.param fu !cntr);
-          (*let par_value = Llvm.param fu !cntr in*)
-          let par_value = Llvm.build_malloc ty id info.builder in
-          Llvm.set_value_name id (Llvm.param fu !cntr);
-          ignore (Llvm.build_store (Llvm.param fu !cntr) par_value info.builder);
-          ignore (newParameter true f PASS_BY_VALUE t (Some(par_value)) new_id);
-          cntr := !cntr + 1
-        ) in List.iter callnewParam slist
-      (*in ref vars do we need to use pointers? if we dont do anything, how will it behave according to calling convention*)
-      | BY_ref ->
-        let callnewParam id = (
+          let param_llvalue = Llvm.param fu (index+offset+i) in
+          Llvm.set_value_name id param_llvalue;
+          let var_llvalue = Llvm.build_malloc ty "malloc_var" info.builder in
+          (*let mallocsize = Llvm.size_of ty in
+            let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] id info.builder in
+            let var_llvalue = Llvm.build_bitcast gccall (Llvm.pointer_type ty) (id^"pointer") info.builder in*)
+          ignore (Llvm.build_store param_llvalue var_llvalue info.builder);
+          ignore (newParameter true f PASS_BY_VALUE t (Some var_llvalue) new_id)
+        ) in List.iteri callnewParam slist
+    | BY_ref ->
+        let callnewParam i id = (
           let new_id = id_make id in
-          Llvm.set_value_name id (Llvm.param fu !cntr);
-          let par_value = Llvm.param fu !cntr in
-          ignore (newParameter true f PASS_BY_REFERENCE t (Some(par_value)) new_id);
-          cntr := !cntr + 1
-        ) in List.iter callnewParam slist
-    )
+          let param_llvalue = Llvm.param fu (index+offset+i) in
+          Llvm.set_value_name id param_llvalue;
+          ignore (newParameter true f PASS_BY_REFERENCE t (Some param_llvalue) new_id)
+        ) in List.iteri callnewParam slist
 
 let sem_formal f formal =
   match formal with
   | Formal(parPas, t, slist) ->
     let idlist = List.map id_make slist in
-    if idlist <> [] then (
-      let par_pas = (
-        match parPas with
-        | BY_val -> PASS_BY_VALUE
-        | BY_ref -> PASS_BY_REFERENCE
-      ) in
-      let callnewParam id = (
-        ignore (newParameter true f par_pas t None id);
-      ) in List.iter callnewParam idlist
-    )
-    else (
-      error "empty list with formals";
-      raise UnknownError
-    )
+    let par_pas = (
+      match parPas with
+      | BY_val -> PASS_BY_VALUE
+      | BY_ref -> PASS_BY_REFERENCE
+    ) in
+    ignore( List.map (newParameter true f par_pas t None) idlist)
 
 let rec params_type info res frm =
   match frm with
@@ -373,94 +371,99 @@ let rec params_type info res frm =
         params_type info new_res tl
     )
 
+let declare_function info nm tOp formals =
+  let ret_t = (
+    match tOp with
+    | Some t -> typ_to_lltype info t
+    | None -> info.void
+  ) in
+  let functions_actual_params = params_type info [] formals in
+  let par_ar = (
+    match (get_current_vars info.context info) with
+    | Some vars ->
+      Array.of_list (vars::functions_actual_params)
+    | None ->
+      Array.of_list (functions_actual_params)
+  ) in
+  let ty = Llvm.function_type ret_t par_ar in
+  let scope = string_of_int !currentScope.sco_nesting in
+  Llvm.declare_function (nm^scope) ty info.the_module
 
 let rec compile_func_def info ast =
   match ast with
   | Func_def (Header(tOp, nm, formals), defs, stmts) ->
+    (*Creating new basic block*)
     let cur_bb = Llvm.insertion_block info.builder in
     let cur_f = Llvm.block_parent cur_bb in
     let next_bb = Llvm.append_block info.context "return" cur_f in
     ignore (Llvm.build_br next_bb info.builder);
+    (*Define function*)
     let id = id_make nm in
     let f = newFunction id true in
-    match f.entry_info with
-    | ENTRY_function inf ->
-    let ret_t = (
-      match tOp with
-      | Some (t) -> typ_to_lltype info t
-      | None     -> info.void
-    ) in
-    let functions_actual_params = params_type info [] formals in
-    let (par_ar, params_start) = (
-      match (get_current_vars info.context info) with
-      | Some vars ->
-        (Printf.eprintf "%s\n" (Llvm.string_of_lltype (vars)));
-        (Array.of_list (vars::functions_actual_params), 1)
-      | None -> (*(Printf.eprintf "Hi!\n" );*) (Array.of_list (functions_actual_params), 0)
-    ) in
-    let ty = Llvm.function_type ret_t par_ar in
-    let scope = string_of_int !currentScope.sco_nesting in
-    let fu = Llvm.declare_function (nm^scope) ty info.the_module in
+    let fu =
+      match f.entry_info with
+      | ENTRY_function inf when inf.function_pstatus = PARDEF_DEFINE ->
+        declare_function info nm tOp formals
+      | ENTRY_function inf ->
+        match inf.function_llvalue with | Some v -> v
+    in
+    (*Write function llvm code in the function basic block*)
     let bb = Llvm.append_block info.context "entry" fu in
     Llvm.position_at_end bb info.builder;
-    let cntr = ref params_start in (*Is this the right value? First param is the outer_scope_vars_struct*)
-    openScope (match tOp with |Some(t) -> t |None -> Null) nm ;
+    (*Open new scope before defining any variables*)
+    let f_typ = (match tOp with |Some(t) -> t |None -> Null) in
+    openScope f_typ nm ;
     (*Compile outer_scope_vars*)
-    List.iter (compile_formal info f fu cntr) formals;
-    endFunctionHeader f (match tOp with |Some(t) -> t |None -> Null) (Some fu);
+    let off = if !currentScope.sco_nesting = 0 then 0 else 1 in
+    List.iteri (compile_formal info f fu off) formals;
+    endFunctionHeader f f_typ (Some fu);
+    (*Compile function body*)
     List.iter (compile_def info) defs;
     List.iter (compile_stmt info) stmts;
-    (*ignore (Llvm.build_ret_void info.builder);*)
-    let cur_bb2 = Llvm.insertion_block info.builder in (
-      if (Llvm.block_terminator cur_bb2) = None then (
-        if ret_t = info.void then ignore (Llvm.build_ret_void info.builder)
-        else ignore(Llvm.build_unreachable info.builder)
-      )
+    (*If function returns void, do a return void at the end always.
+      Esle make an unreachable command, as the function should return before.*)
+    let function_return_type = Llvm.return_type (Llvm.element_type (Llvm.type_of fu)) in
+    let cur_bb2 = Llvm.insertion_block info.builder in
+    if (Llvm.block_terminator cur_bb2) = None then (
+      if function_return_type = info.void then ignore (Llvm.build_ret_void info.builder)
+      else ignore(Llvm.build_unreachable info.builder)
     );
     Llvm.position_at_end next_bb info.builder;
-    (*Llvm.position_at_end ret_b info.builder;...???*)
+    (*closing variables' scope*)
     closeScope false
 
 and compile_func_decl info ast =
-    (*must keep the fact that the function must be properly defined!!!*)
   match ast with
   | Func_decl (Header(tOp, nm, formals)) ->
+    (*Define the function*)
     let id = id_make nm in
     let f = newFunction id true in
-    let ret_t = (
-      match tOp with
-      | Some (t) -> typ_to_lltype info t
-      | None     -> info.void
-    ) in
-    let functions_actual_params = params_type info [] formals in
-    let (par_ar, params_start) = (
-      match (get_current_vars info.context info) with
-      | Some vars ->
-        (Printf.eprintf "%s\n" (Llvm.string_of_lltype (vars)));
-        (Array.of_list (vars::functions_actual_params), 1)
-      | None -> (Array.of_list (functions_actual_params), 0)
-      ) in
-    let ty = Llvm.function_type ret_t par_ar in
-    let scope = string_of_int !currentScope.sco_nesting in
-    let fu = Llvm.declare_function (nm^scope) ty info.the_module in
-    openScope (match tOp with |Some(t) -> t |None -> Null) nm ;
+    let fu = declare_function info nm tOp formals in
+    (*open "fake" scope for the parameters' temporary definition*)
+    let f_typ = (match tOp with |Some(t) -> t |None -> Null) in
+    openScope f_typ nm;
+    (*"informally" define parameters to use in calling the function*)
     List.iter (sem_formal f) formals;
+    (*Function MUST be fully defined*)
     forwardFunction f;
-    endFunctionHeader f (match tOp with |Some(t) -> t |None -> Null) (Some fu);
+    endFunctionHeader f f_typ (Some fu);
+    (*closing scope*)
     closeScope false
 
 and compile_var_def info ast =
   match ast with
-  | Var_def(t, s_list)	-> if s_list <> [] then (
-                             let ty = typ_to_lltype info t in
-                             let callnewParam id = (
-                               let new_id = id_make id in
-                               let v = Llvm.build_malloc ty id info.builder in
-                               ignore (newVariable true t (Some(v)) new_id) )
-                             in List.iter callnewParam s_list
-                           )
-                           else (error "empty list with variables";
-                                 raise UnknownError)
+  | Var_def(t, s_list) ->
+    let ty = typ_to_lltype info t in
+    let callnewParam id = (
+      let new_id = id_make id in
+      let v = Llvm.build_malloc ty "malloc_var" info.builder in
+      (*let mallocsize = Llvm.size_of ty in
+        let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] id info.builder in
+      let v = Llvm.build_bitcast gccall (Llvm.pointer_type ty) (id^"pointer") info.builder in*)
+      ignore ( newVariable true t (Some v) new_id )
+    ) in
+    List.iter callnewParam s_list
+
 
 and compile_def info ast =
   match ast with
@@ -471,118 +474,98 @@ and compile_def info ast =
 and compile_expr info ast =
   (*cannot avoid raising an exception; otherwise, compiler throws error expecting type typ*)
   match ast with
-  | E_atom a -> (
-      let p = compile_atom info a in
-      match a with
-      | A_call _ -> Llvm.build_load p "loadtmp" info.builder
-      | _        -> Llvm.build_load p "loadtmp" info.builder
-    )
-  | E_int_const n -> info.c32 n (*64-bit integers?*)
-  | E_char_const c -> info.c8 (Char.code c)
-  | E_un_plus (e, line) ->
-    let t = compile_expr info e in (
-      if (Llvm.type_of t) <> info.i32 then (
-        error "operator '+' expected integer as operand";
-        raise (TypeError line)
-      )
-      else t
-    )
-  | E_un_minus (e, line) ->
-    let t = compile_expr info e in (
-      if (Llvm.type_of t) <> info.i32 then (
-        error "operator '-' expected integer as operand";
-        raise (TypeError line)
-      )
-      else Llvm.build_neg t "negtmp" info.builder )
+  | E_atom a ->
+    let p = compile_atom info a in
+    Llvm.build_load p "loadtmp" info.builder
+  | E_int_const n           -> info.c32 n (*64-bit integers?*)
+  | E_char_const c          -> info.c8 (Char.code c)
+  | E_un_plus (e, line)     -> compile_expr info e
+  | E_un_minus (e, line)    ->
+    let t = compile_expr info e in
+    Llvm.build_neg t "negtmp" info.builder
   | E_op (e1, op, e2, line) ->
     let t1 = compile_expr info e1
     and t2 = compile_expr info e2 in (
-      if (Llvm.type_of t1) <> info.i32 || (Llvm.type_of t2) <> info.i32 then (
-        let opString = op_as_string op in
-        error "operator '%s' expected integers as operands" opString;
-        (Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t1)) (Llvm.string_of_lltype (Llvm.type_of t2)));
-        raise (TypeError line)
-      )
-      else (
-        match op with
-        | O_plus  -> Llvm.build_add t1 t2 "addtmp" info.builder (*returns the llvalue*)
-        | O_minus -> Llvm.build_sub t1 t2 "subtmp" info.builder
-        | O_times -> Llvm.build_mul t1 t2 "multmp" info.builder
-        | O_div   -> Llvm.build_sdiv t1 t2 "divtmp" info.builder
-        | O_mod   -> Llvm.build_srem t1 t2 "modtmp" info.builder
-      )
+      match op with
+      | O_plus  -> Llvm.build_add t1 t2 "addtmp" info.builder
+      | O_minus -> Llvm.build_sub t1 t2 "subtmp" info.builder
+      | O_times -> Llvm.build_mul t1 t2 "multmp" info.builder
+      | O_div   -> Llvm.build_sdiv t1 t2 "divtmp" info.builder
+      | O_mod   -> Llvm.build_srem t1 t2 "modtmp" info.builder
     )
-  | E_lg_op (e1, op, e2, line)  -> let t1 = compile_expr info e1
-                                   and t2 = compile_expr info e2 in
-                                   (if invalid_log_op info t1 t2 then
-                                      (let opString = lg_as_string op in
-                                       error "operator '%s' expected operands of same primitive type" opString;
-                                       (*(Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t1)) (Llvm.string_of_lltype (Llvm.type_of t2)) );*)
-                                       raise (TypeError line))
-                                    else (match op with
-                                         | LO_eq 			      -> Llvm.build_icmp Llvm.Icmp.Eq t1 t2 "eqtmp" info.builder
-                                         | LO_dif			      -> Llvm.build_icmp Llvm.Icmp.Ne t1 t2 "diftmp" info.builder
-                                         | LO_less			    -> Llvm.build_icmp Llvm.Icmp.Slt t1 t2 "eqtmp" info.builder
-                                         | LO_greater 		  -> Llvm.build_icmp Llvm.Icmp.Sgt t1 t2 "eqtmp" info.builder
-                                         | LO_less_eq 		  -> Llvm.build_icmp Llvm.Icmp.Sle t1 t2 "eqtmp" info.builder
-                                         | LO_greater_eq 	  -> Llvm.build_icmp Llvm.Icmp.Sge t1 t2 "eqtmp" info.builder ) )
-  | E_bool b                    -> info.c1 (if b = True then 1 else 0)
-  | E_not (e, line)             -> let t = compile_expr info e in
-                                   (if (Llvm.type_of t) <> info.i1 then (error "operator 'not' expected boolean as operand";
-                                                                         raise (TypeError line))
-                                    else Llvm.build_not t "nottmp" info.builder )
-  | E_and_or (e1, ao, e2, line) -> let t1 = compile_expr info e1
-                                   and t2 = compile_expr info e2 in
-                                   (if (Llvm.type_of t1) <> info.i1 || (Llvm.type_of t2) <> info.i1 then
-                                      (let opString = andor_as_string ao in
-                                       error "operator '%s' expected booleans as operands" opString;
-                                       (Printf.eprintf "%s %s\n" (Llvm.string_of_lltype (Llvm.type_of t1)) (Llvm.string_of_lltype (Llvm.type_of t2)) );
-                                       raise (TypeError line))
-                                    else (match ao with
-                                         | And -> Llvm.build_and t1 t2 "andtmp" info.builder
-                                         | Or  -> Llvm.build_or t1 t2 "ortmp" info.builder ) )
+  | E_lg_op (e1, op, e2, line) ->
+    let t1 = compile_expr info e1
+    and t2 = compile_expr info e2 in (
+      match op with
+      | LO_eq 			    -> Llvm.build_icmp Llvm.Icmp.Eq t1 t2 "eqtmp" info.builder
+      | LO_dif			    -> Llvm.build_icmp Llvm.Icmp.Ne t1 t2 "diftmp" info.builder
+      | LO_less			    -> Llvm.build_icmp Llvm.Icmp.Slt t1 t2 "eqtmp" info.builder
+      | LO_greater 		  -> Llvm.build_icmp Llvm.Icmp.Sgt t1 t2 "eqtmp" info.builder
+      | LO_less_eq 		  -> Llvm.build_icmp Llvm.Icmp.Sle t1 t2 "eqtmp" info.builder
+      | LO_greater_eq 	-> Llvm.build_icmp Llvm.Icmp.Sge t1 t2 "eqtmp" info.builder
+    )
+  | E_bool b        -> info.c1 (if b = True then 1 else 0)
+  | E_not (e, line) ->
+    let t = compile_expr info e in
+    Llvm.build_not t "nottmp" info.builder
+  | E_and_or (e1, ao, e2, line) ->
+    let t1 = compile_expr info e1
+    and t2 = compile_expr info e2 in (
+      match ao with
+      | And -> Llvm.build_and t1 t2 "andtmp" info.builder
+      | Or  -> (*
+        let cond = Llvm.build_icmp Llvm.Icmp.Ne t1 (info.c1 0) "if_cond" info.builder in
+        let bb = Llvm.insertion_block info.builder in
+        let f = Llvm.block_parent bb in
+        let then_bb = Llvm.append_block info.context "then" f in
+        let else_if_bb = Llvm.append_block info.context "else_if" f in
+        let else_bb = Llvm.append_block info.context "else" f in
+        ignore (Llvm.build_cond_br cond then_bb else_bb info.builder);
+        Llvm.position_at_end then_bb info.builder;
+        Llvm.build_or (info) ;
+        ignore (Llvm.build_br after_bb info.builder);
+        Llvm.position_at_end else_bb info.builder;
+        compile_elsif_stmt info else_bb after_bb elsif els;
+        Llvm.position_at_end after_bb info.builder
+        *)
+        Llvm.build_or t1 t2 "ortmp" info.builder
+    )
   | E_new (a, e, line) ->
     let t = compile_expr info e in
-    (if not (a <> Null) || (Llvm.type_of t) <> info.i32 then (
-        error "operator 'new' expected a valid type and an integer as operands";
-        raise (TypeError line)
-      )
-      else (
-        (*Llvm.build_array_malloc (typ_to_lltype info a) t "arraynew" info.builder*)
-        let typofa = typ_to_lltype info a in
-        let sizeofa = Llvm.size_of typofa in
-        let siza32 = Llvm.build_bitcast sizeofa info.i32 "typesize" info.builder in
-        let mallocsize = Llvm.build_mul t siza32 "mallocsize" info.builder in
-        let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] "gcmalloccall" info.builder in
-        Llvm.build_bitcast gccall (Llvm.pointer_type typofa) "arraynew" info.builder )
-    )
-  | E_nil -> Llvm.const_pointer_null info.tony_list
+    let typofa = typ_to_lltype info a in
+    let sizeofa = Llvm.size_of typofa in
+    let siza32 = Llvm.build_bitcast sizeofa info.i32 "typesize" info.builder in
+    let mallocsize = Llvm.build_mul t siza32 "mallocsize" info.builder in
+    let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] "gcmalloccall" info.builder in
+    Llvm.build_bitcast gccall (Llvm.pointer_type typofa) "arraynew" info.builder
+  | E_nil              -> Llvm.const_pointer_null info.tony_list
   | E_is_nil (e, line) -> (
       let t = compile_expr info e in
       if (Llvm.classify_type (Llvm.element_type (Llvm.type_of t))) = Llvm.TypeKind.Struct then
           Llvm.build_is_null t "nulltmp" info.builder
-      else (
-          if Llvm.type_of t = info.tony_list then (*in this case we know it is null*) (
-            let n = Llvm.const_null info.tony_list in
-            Llvm.build_is_null n "nulltmp" info.builder
-          )
-        else (
-          error "operator 'nil?' expected operand of type list";
-          raise (TypeError line)
-        )
-      )
+      else
+          (*in this case we know it is null*)
+          let n = Llvm.const_null info.tony_list in
+          Llvm.build_is_null n "nulltmp" info.builder
     )
-  | E_cons (e1, e2, line) -> (
+  | E_cons (e1, e2, line) ->
+      (*Four cases:
+        Null # Null
+        sth # Null
+        Null # sth_list
+        sth # sth_list
+      *)
       let v1 = compile_expr info e1
       and v2 = compile_expr info e2 in
       if (Llvm.type_of v2) = info.tony_list || (Llvm.element_type (Llvm.type_of v2)) = info.tony_list then (
+        (*v2 is Null*)
         let ptr_v1 = (
           if v1 = Llvm.const_pointer_null info.tony_list then
+            (*v1 is Null*)
             Llvm.build_bitcast v1 (Llvm.pointer_type (Llvm.type_of v1)) "tmpbitcast" info.builder
-          else v1
+          else (*v1 is sth*) v1
         ) in
         let struct_t = (Llvm.struct_type info.context (Array.of_list([(Llvm.type_of ptr_v1); (Llvm.pointer_type info.tony_list)]))) in
-        (*let l_node = Llvm.build_malloc struct_t "list_node" info.builder in*)
         let gccall = Llvm.build_call (info.gc_malloc) [| info.c32 16 |] "gcmalloccall" info.builder in
         let l_node = Llvm.build_bitcast gccall (Llvm.pointer_type struct_t) "list_node" info.builder in
         let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
@@ -593,70 +576,35 @@ and compile_expr info ast =
         l_node
       )
       else (
-        if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v2))) = Llvm.TypeKind.Struct then
-            let struct_t = Llvm.element_type (Llvm.type_of v2) in
-            let el_t = Array.get (Llvm.struct_element_types struct_t) 0 in
-            (*I want to compare types of v1 and el_t*)
-            let (eq, btc) = equal_types info (Llvm.type_of v1) (el_t) in
-            if not(eq) then (
-              error "type of list of right operand of operator '#' must be of same type as left operand";
-              (*(Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (el_t)) (Llvm.string_of_lltype (v1_type)));*)
-              raise (TypeError line)
-            )
-            else (
-              let struct_t = (
-                if btc = 2 then
-                  Llvm.struct_type info.context [|(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)|]
-                else struct_t
-              ) in
-              let el_t = (
-                if btc = 2 then
-                  Llvm.type_of v1
-                else el_t
-              ) in
-              let v1_type = (
-                if btc = 1 then
-                  el_t
-                else Llvm.type_of v1
-              ) in
-              (*let l_node = Llvm.build_malloc struct_t "list_node" info.builder in*)
-              let gccall = Llvm.build_call (info.gc_malloc) [| info.c32 16 |] "gcmalloccall" info.builder in
-              let l_node = Llvm.build_bitcast gccall (Llvm.pointer_type struct_t) "list_node" info.builder in
-              let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
-              let elem2 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 1) |] "elem_2" info.builder in
-              let el_change = Llvm.build_bitcast v1 el_t "tmpbitcast1" info.builder in
-              let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast2" info.builder in
-              ignore (Llvm.build_store el_change elem1 info.builder);
-              ignore (Llvm.build_store ptr_change elem2 info.builder);
-              l_node
-            )
-        else (
-          error "operator '#' expected a valid type and a list as operands";
-          raise (TypeError line)
-        )
+        (*v2 is sth_list*)
+        let struct_t = Llvm.element_type (Llvm.type_of v2) in
+        let el_t = Array.get (Llvm.struct_element_types struct_t) 0 in
+        (*I want to compare types of v1 and el_t*)
+        let btc = equal_types info line (Llvm.type_of v1) (el_t) in
+        let struct_t = if btc = 2 then
+                          Llvm.struct_type info.context [|(Llvm.type_of v1); (Llvm.pointer_type info.tony_list)|]
+                        else struct_t in
+        let el_t = (if btc = 2 then Llvm.type_of v1 else el_t) in
+        let v1_type = if btc = 1 then el_t else Llvm.type_of v1 in
+        let gccall = Llvm.build_call (info.gc_malloc) [| info.c32 16 |] "gcmalloccall" info.builder in
+        let l_node = Llvm.build_bitcast gccall (Llvm.pointer_type struct_t) "list_node" info.builder in
+        let elem1 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 0) |] "elem_1" info.builder in
+        let elem2 = Llvm.build_gep l_node [| (info.c32 0); (info.c32 1) |] "elem_2" info.builder in
+        let el_change = Llvm.build_bitcast v1 el_t "tmpbitcast1" info.builder in
+        let ptr_change = Llvm.build_bitcast v2 (Llvm.pointer_type info.tony_list) "tmpbitcast2" info.builder in
+        ignore (Llvm.build_store el_change elem1 info.builder);
+        ignore (Llvm.build_store ptr_change elem2 info.builder);
+        l_node
       )
-    )
-  | E_head (e, line) -> (
+  | E_head (e, line) ->
       let v = compile_expr info e in
-      if not(Llvm.is_null(v)) && (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Struct then
-        let ptr = Llvm.build_gep v [| (info.c64 0); (info.c32 0) |] "head_ptr" info.builder in
-        Llvm.build_load ptr "head" info.builder
-      else (
-        error "operator 'head' expected operand of non-empty list type";
-        raise (TypeError line)
-      )
-    )
-  | E_tail (e, line) -> (
+      let ptr = Llvm.build_gep v [| (info.c64 0); (info.c32 0) |] "head_ptr" info.builder in
+      Llvm.build_load ptr "head" info.builder
+  | E_tail (e, line) ->
       let v = compile_expr info e in
-        if not(Llvm.is_null(v)) && (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Struct then
-          let ptr = Llvm.build_gep v [| (info.c64 0); (info.c32 1) |] "tail_ptr" info.builder in
-          let tl = Llvm.build_load ptr "tail" info.builder in
-          Llvm.build_bitcast tl (Llvm.type_of v) "tmpbitcast" info.builder
-        else (
-          error "operator 'tail' expected operand of non-empty list type";
-          raise (TypeError line)
-        )
-    )
+      let ptr = Llvm.build_gep v [| (info.c64 0); (info.c32 1) |] "tail_ptr" info.builder in
+      let tl = Llvm.build_load ptr "tail" info.builder in
+      Llvm.build_bitcast tl (Llvm.type_of v) "tmpbitcast" info.builder
 
 
 and check_param fname line info exp par =
@@ -667,24 +615,10 @@ and check_param fname line info exp par =
           | ( PASS_BY_REFERENCE, E_atom (a) ) -> compile_atom info a
           | _ -> compile_expr info exp
         ) in
-        let arg = (
-          if (Llvm.type_of a) = info.tony_list then (
-            if (Llvm.classify_type (Llvm.element_type (Llvm.element_type (Llvm.type_of (match pi.parameter_value with | Some p -> p))))) = Llvm.TypeKind.Struct then
-              Llvm.build_bitcast a (Llvm.element_type (Llvm.type_of (match pi.parameter_value with | Some p -> p))) "tmpbitcast" info.builder
-            else (error "Cannot save a list in a non-list function parameter";
-                  raise (TypeError line)) )
-          else a
-        ) in
-        arg
-        (*if pi.parameter_mode = PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.element_type (Llvm.type_of (match pi.parameter_value with | Some p -> p))) then
-         (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-          (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of (match pi.parameter_value with | Some p -> p))));
-          raise (TypeError line))
-        else (if pi.parameter_mode <> PASS_BY_VALUE && (Llvm.type_of arg) <> (Llvm.type_of (match pi.parameter_value with | Some p -> p)) then
-                (error "parameter type in call of function '%s' inconsistent with type in function definition" fname;
-                 (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of arg)) (Llvm.string_of_lltype (Llvm.type_of (match pi.parameter_value with | Some p -> p))));
-                 raise (TypeError line))
-              else arg )*)
+        if (Llvm.type_of a) = info.tony_list then
+          let par_type = Llvm.type_of (match pi.parameter_value with | Some p -> p) in
+          Llvm.build_bitcast a (Llvm.element_type par_type) "tmpbitcast" info.builder
+        else a
      | _ ->
        raise UnknownError
 
@@ -693,49 +627,50 @@ and compile_call info c =
   | C_call(nm, exprs, line) ->
     let id = id_make nm in
     let e = lookupEntry id LOOKUP_ALL_SCOPES true in
-    let depth = e.entry_scope.sco_nesting in
-    (match e.entry_info with
-    | ENTRY_function(f) ->
-       let ret_void = (f.function_result = Some (Null)) in
-         begin
-           try
-             let formal_params_array = List.map2 (check_param nm line info) exprs f.function_paramlist in (*???*)
-             let params_array = (
-               match depth with
-               | -1 -> Array.of_list formal_params_array
-               | _ -> (
-                   if !currentScope.sco_nesting = 0 then (
-                       let callee_struct = malloc_outer_vars_struct None info f depth in
-                       Array.of_list (callee_struct::formal_params_array)
-                    )
-                   else (
-                      let current_struct = get_current_struct line in
-                      let callee_struct = malloc_outer_vars_struct (Some current_struct) info f depth in
-                      Array.of_list (callee_struct::formal_params_array)
-                    )
-                 )
-             ) in
-             (if ret_void then
-                Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "" info.builder
-              else(
-                let call = Llvm.build_call (match f.function_llvalue with Some (v) -> v) params_array "calltmp" info.builder in
-                let p = Llvm.build_malloc (match f.function_result with Some (v) -> (typ_to_lltype info v)) "call_result" info.builder in
-                ignore(Llvm.build_store call p info.builder);
-                p
-              )
-             )
-           with Invalid_argument _ ->
-             error "fewer or more parameters than expected in call of function '%s'" nm;
-             raise (TypeError line)
-         end
-     (*else (error "function '%s' is not yet defined" nm;
-           raise (TypeError line))*)
-    | _ -> error "identifier '%s' is not a function" nm;
-           raise (TypeError line) )
+    let depth = e.entry_scope.sco_nesting in (
+      match e.entry_info with
+      | ENTRY_function(f) ->
+      (*Getting function parameters*)
+        let formal_params_array = List.map2 (check_param nm line info) exprs f.function_paramlist in (*???*)
+        (*Add the outer variables to parameters struct if necessery*)
+        let params_array = (
+          match depth with
+            (*If -1 it is an built-in function*)
+          | -1 -> Array.of_list formal_params_array
+          | _ -> (
+              (*Main-level-0 does not have a struct*)
+            if !currentScope.sco_nesting = 0 then
+              let callee_struct = malloc_outer_vars_struct None info f depth in
+              Array.of_list (callee_struct::formal_params_array)
+            else
+              let current_struct = get_current_struct line in
+              let callee_struct = malloc_outer_vars_struct (Some current_struct) info f depth in
+              Array.of_list (callee_struct::formal_params_array)
+          )
+        ) in
+      (*Calling the function*)
+        let ret_void = (f.function_result = Some (Null)) in
+        let f_val = (match f.function_llvalue with Some (v) -> v) in (
+        if ret_void then
+          Llvm.build_call f_val params_array "" info.builder
+        else
+          let call = Llvm.build_call f_val params_array "calltmp" info.builder in
+          (*Malloc memory for function's result*)
+          let f_result = (match f.function_result with Some (v) -> (typ_to_lltype info v)) in
+          let p = Llvm.build_malloc f_result "call_result" info.builder in
+          ignore(Llvm.build_store call p info.builder);
+          p
+      )
+      | _ -> (
+          error "identifier '%s' is not a function" nm;
+          raise (TypeError line)
+        )
+    )
+
 
 and compile_atom info ast =
   match ast with
-  | A_var (v, line) -> (
+  | A_var (v, line) ->
     let id = id_make v in
     let e = lookupEntry id LOOKUP_ALL_SCOPES true in
     let (value, offset) = (
@@ -747,11 +682,9 @@ and compile_atom info ast =
            raise (TypeError line)
          )
     ) in
-    if e.entry_scope.sco_nesting = !currentScope.sco_nesting then (
-      match value with Some v -> v
-    )
+    if e.entry_scope.sco_nesting = !currentScope.sco_nesting then
+      (match value with Some v -> v)
     else get_struct_var line info e offset
-  )
   | A_string_const str  ->
     let str = info.make_string str in (*when reading the string from input it does not contain the white character in the end?*)
     (info.global_counter) := !(info.global_counter) + 1;
@@ -764,47 +697,28 @@ and compile_atom info ast =
   | A_atom (a, e, line) ->
     let n = compile_expr info e
     and v = compile_atom info a in
-    begin
-      if (Llvm.classify_type (Llvm.element_type (Llvm.type_of v))) = Llvm.TypeKind.Pointer then
-        if (Llvm.type_of n) <> info.i32 then (
-          error "array index not int";
-          raise (TypeError line)
-        )
-        else (
-          (*we need to keep info about array limits and have a sem fault if the program tries to break it*)
-          let ar = Llvm.build_load v "loadtmp" info.builder in
-          Llvm.build_in_bounds_gep ar [| n |] "arraytmp" info.builder
-        )
-      else (
-        error "identifier is not an array";
-        raise (TypeError line)
-      )
-    end
+    let ar = Llvm.build_load v "loadtmp" info.builder in
+    Llvm.build_in_bounds_gep ar [| n |] "arraytmp" info.builder
   | A_call c -> compile_call info c
+
 
 and compile_simple info ast =
   match ast with
-  | S_skip () -> () (*ignored by compiler? else must find suitable llvm instruction*)
+  | S_skip () -> ()
   | S_assign (a, e, line) ->
     let x = compile_atom info a
     and y = compile_expr info e in
-    let (eq, btc) = equal_types info (Llvm.element_type (Llvm.type_of x)) (Llvm.type_of y) in
-    if not(eq) then (
-      error "lvalue and rvalue in assignment are not of the same type";
-      raise (TypeError line)
-    )
-    else (
-      let new_y = (
-        if btc = 2 then
-          Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder
-        else y
-      ) in
-      ignore (Llvm.build_store new_y x info.builder) (*if it is an array assingment i have to assign x the pointer*)
-    )
-
+    let btc = equal_types info line (Llvm.element_type (Llvm.type_of x)) (Llvm.type_of y) in
+    let new_y = (
+      if btc = 2 then
+        Llvm.build_bitcast y (Llvm.element_type (Llvm.type_of x)) "tmpbitcast" info.builder
+      else y
+    ) in
+    ignore (Llvm.build_store new_y x info.builder)
   | S_call c ->
     let v = compile_call info c	in
     if (Llvm.type_of v) <> info.void then raise UnknownError
+
 
 and compile_stmt info ast =
     match ast with
@@ -814,11 +728,7 @@ and compile_stmt info ast =
       let f = Llvm.block_parent bb in
       let f_ty = Llvm.type_of f in
       let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
-      if ret_ty <> info.void then (
-        error "type of object to be returned incompatible with void type while this is a void function";
-        raise (TypeError line)
-      )
-      else ignore (Llvm.build_ret_void info.builder);
+      ignore (Llvm.build_ret_void info.builder);
       let new_bb =  Llvm.insert_block info.context "after_exit" bb in
       Llvm.move_block_after bb new_bb;
       Llvm.position_at_end new_bb info.builder
@@ -828,41 +738,27 @@ and compile_stmt info ast =
       let f = Llvm.block_parent bb in
       let f_ty = Llvm.type_of f in
       let ret_ty = Llvm.return_type (Llvm.element_type f_ty) in
-      let (eq, btc) = equal_types info (Llvm.type_of t) ret_ty in
-      if not(eq) then (
-        error "type of object to be returned incompatible with return type of function";
-        (Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of t)) (Llvm.string_of_lltype (ret_ty)));
-        raise (TypeError line)
-      )
-      else (
-        let new_t = if btc > 0 then Llvm.build_bitcast t ret_ty "tmpbitcast" info.builder else t in
-        ignore (Llvm.build_ret new_t info.builder)
-      );
+      let btc = equal_types info line (Llvm.type_of t) ret_ty in
+      let new_t = if btc > 0 then Llvm.build_bitcast t ret_ty "tmpbitcast" info.builder else t in
+      ignore (Llvm.build_ret new_t info.builder);
       let new_bb =  Llvm.insert_block info.context "after_return" bb in
       Llvm.move_block_after bb new_bb;
       Llvm.position_at_end new_bb info.builder
     | S_if (e, stmts, elsif, els, line) ->
       let v = compile_expr info e in
-      if (Llvm.type_of v) <> info.i1 then (
-        error "condition in if-statement must be evaluated as boolean";
-        (Printf.eprintf "%s\n" (Llvm.string_of_lltype (Llvm.type_of v)));
-        raise (TypeError line)
-      )
-      else (
-        let cond = Llvm.build_icmp Llvm.Icmp.Ne v (info.c1 0) "if_cond" info.builder in
-        let bb = Llvm.insertion_block info.builder in
-        let f = Llvm.block_parent bb in
-        let then_bb = Llvm.append_block info.context "then" f in
-        let else_bb = Llvm.append_block info.context "else" f in
-        let after_bb = Llvm.append_block info.context "after" f in
-        ignore (Llvm.build_cond_br cond then_bb else_bb info.builder);
-        Llvm.position_at_end then_bb info.builder;
-        List.iter (compile_stmt info) stmts;
-        ignore (Llvm.build_br after_bb info.builder);
-        Llvm.position_at_end else_bb info.builder;
-        compile_elsif_stmt info else_bb after_bb elsif els;
-        Llvm.position_at_end after_bb info.builder
-      )
+      let cond = Llvm.build_icmp Llvm.Icmp.Ne v (info.c1 0) "if_cond" info.builder in
+      let bb = Llvm.insertion_block info.builder in
+      let f = Llvm.block_parent bb in
+      let then_bb = Llvm.append_block info.context "then" f in
+      let else_bb = Llvm.append_block info.context "else" f in
+      let after_bb = Llvm.append_block info.context "after" f in
+      ignore (Llvm.build_cond_br cond then_bb else_bb info.builder);
+      Llvm.position_at_end then_bb info.builder;
+      List.iter (compile_stmt info) stmts;
+      ignore (Llvm.build_br after_bb info.builder);
+      Llvm.position_at_end else_bb info.builder;
+      compile_elsif_stmt info else_bb after_bb elsif els;
+      Llvm.position_at_end after_bb info.builder
     | S_for (simples1, e, simples2, stmts, line) ->
       List.iter (compile_simple info) simples1;
       let bb = Llvm.insertion_block info.builder in
@@ -873,44 +769,34 @@ and compile_stmt info ast =
       ignore (Llvm.build_br loop_bb info.builder);
       Llvm.position_at_end loop_bb info.builder;
       let n = compile_expr info e in
-      if (Llvm.type_of n) <> info.i1 then (
-        error "condition in for-statement must be evaluated as boolean";
-        raise (TypeError line)
-      )
-      else (
-        let loop_cond = Llvm.build_icmp Llvm.Icmp.Ne n (info.c1 0) "loop_cond" info.builder in
-        ignore (Llvm.build_cond_br loop_cond body_bb after_bb info.builder);
-        Llvm.position_at_end body_bb info.builder;
-        List.iter (compile_stmt info) stmts;
-        List.iter (compile_simple info) simples2;
-        ignore (Llvm.build_br loop_bb info.builder);
-        Llvm.position_at_end after_bb info.builder
-      )
+      let loop_cond = Llvm.build_icmp Llvm.Icmp.Ne n (info.c1 0) "loop_cond" info.builder in
+      ignore (Llvm.build_cond_br loop_cond body_bb after_bb info.builder);
+      Llvm.position_at_end body_bb info.builder;
+      List.iter (compile_stmt info) stmts;
+      List.iter (compile_simple info) simples2;
+      ignore (Llvm.build_br loop_bb info.builder);
+      Llvm.position_at_end after_bb info.builder
+
 
 and compile_elsif_stmt info then_bb after_bb ast els =
   match ast with
   | Some( S_elsif (e, stmts, elsif, line) ) ->
     let v = compile_expr info e in
-    if (Llvm.type_of v) <> info.i1 then (
-      error "condition in elsif-statement must be evaluated as boolean";
-      raise (TypeError line)
-    )
-    else (
-      let cond = Llvm.build_icmp Llvm.Icmp.Ne v (info.c1 0) "if_cond" info.builder in
-      let bb = Llvm.insertion_block info.builder in
-      let f = Llvm.block_parent bb in
-      let new_then_bb = Llvm.insert_block info.context "new_then" after_bb in
-      Llvm.move_block_after then_bb new_then_bb;
-      let else_bb = Llvm.insert_block info.context "else" after_bb in
-      Llvm.move_block_after new_then_bb else_bb;
-      ignore (Llvm.build_cond_br cond new_then_bb else_bb info.builder);
-      Llvm.position_at_end new_then_bb info.builder;
-      List.iter (compile_stmt info) stmts;
-      ignore (Llvm.build_br after_bb info.builder);
-      Llvm.position_at_end else_bb info.builder;
-      compile_elsif_stmt info else_bb after_bb elsif els
-    )
+    let cond = Llvm.build_icmp Llvm.Icmp.Ne v (info.c1 0) "if_cond" info.builder in
+    let bb = Llvm.insertion_block info.builder in
+    let f = Llvm.block_parent bb in
+    let new_then_bb = Llvm.insert_block info.context "new_then" after_bb in
+    Llvm.move_block_after then_bb new_then_bb;
+    let else_bb = Llvm.insert_block info.context "else" after_bb in
+    Llvm.move_block_after new_then_bb else_bb;
+    ignore (Llvm.build_cond_br cond new_then_bb else_bb info.builder);
+    Llvm.position_at_end new_then_bb info.builder;
+    List.iter (compile_stmt info) stmts;
+    ignore (Llvm.build_br after_bb info.builder);
+    Llvm.position_at_end else_bb info.builder;
+    compile_elsif_stmt info else_bb after_bb elsif els
   | None -> compile_else_stmt info then_bb after_bb els
+
 
 and compile_else_stmt info then_bb after_bb ast =
   match ast with
@@ -921,6 +807,7 @@ and compile_else_stmt info then_bb after_bb ast =
   | None ->
     Llvm.position_at_end then_bb info.builder;
     ignore (Llvm.build_br after_bb info.builder)
+
 
 and compile_func ast =
   match ast with
@@ -954,19 +841,6 @@ and compile_func ast =
     let c64 = Llvm.const_int i64 in
     let make_string = Llvm.const_stringz context in
     let global_counter = ref 0 in
-    (* Initialize global variables *)
-    (*let vars_type = Llvm.array_type i64 26 in
-    let the_vars = Llvm.declare_global vars_type "vars" the_module in
-    Llvm.set_linkage Llvm.Linkage.Private the_vars;
-    Llvm.set_initializer (Llvm.const_null vars_type) the_vars;
-    Llvm.set_alignment 16 the_vars;
-    let nl = "\n" in
-    let nl_type = Llvm.array_type i8 (1 + String.length nl) in
-    let the_nl = Llvm.declare_global nl_type "nl" the_module in
-    Llvm.set_linkage Llvm.Linkage.Private the_nl;
-    Llvm.set_global_constant true the_nl;
-    Llvm.set_initializer (Llvm.const_stringz context nl) the_nl;
-      Llvm.set_alignment 1 the_nl;*)
     (* Initialize library functions *)
     let puti_type =
       Llvm.function_type (Llvm.void_type context) [| i32 |] in
@@ -997,7 +871,7 @@ and compile_func ast =
     let getb =
       Llvm.declare_function "getb" getb_type the_module in
     let gets_type =
-      Llvm.function_type (Llvm.pointer_type i8) [| |] in
+      Llvm.function_type (Llvm.void_type context) [| (i32); (Llvm.pointer_type i8) |] in
     let gets =
       Llvm.declare_function "gets" gets_type the_module in
     let abs_type =

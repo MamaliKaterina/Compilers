@@ -1,0 +1,43 @@
+def lib_functions():
+
+  int oct
+  bool b
+  char weird_char
+  char[] big_string
+
+  big_string := new char[10]
+
+  %lib functions
+  oct := geti()
+  puti(oct)
+
+  b := getb()
+  putb(b)
+
+  weird_char := getc()
+  putc(weird_char)
+  putc('\n')
+
+  gets(10, big_string)
+  puts(big_string)
+  putc('\n')
+
+  puti(abs(4-5))
+  putc('\n')
+  puti(ord('c'))
+  putc('\n')
+  putc(chr(42))
+  putc('\n')
+
+  puti(strcmp(big_string, "Hello"))
+  putc('\n')
+
+  strcpy(big_string, "hello")
+  puts(big_string)
+  putc('\n')
+
+  strcat(big_string, "hel")
+  puts(big_string)
+  putc('\n')
+
+end

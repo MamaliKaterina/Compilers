@@ -1,0 +1,50 @@
+def main():
+
+  decl int sum(int a)
+
+  def int mul(int a):
+
+    %This function secretely sees 'start' and 'a0' to pass it over to sum
+    %a semantic error should occur if it tries to use them
+    %puti(a0)
+
+    return a * sum(a-1)
+
+  end
+
+  bool start
+  int a0
+
+  def int sum(int a):
+
+    if a <= 0 and start:
+      start := false
+      return a0
+    elsif a <= 0 and not start:
+      return 0
+    else:
+      return a + mul(a-1)
+    end
+
+  end
+
+  int result
+
+  start := true
+  a0 := 5
+  result := sum(6) %expercted result: 131
+  puti(result)
+  puts("\n")
+
+  start := true
+  a0 := 0
+  result := sum(6) %expected result: 56
+  puti(result)
+  puts("\n")
+
+
+  result := sum(6) %expected result: 56
+  puti(result)
+  puts("\n")
+
+end

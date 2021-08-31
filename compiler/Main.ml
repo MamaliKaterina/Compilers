@@ -11,7 +11,6 @@ let main =
     try
       let asts = Tony_parser.program Tony_lexer.lexer lexbuf in
       sem asts;
-      print_tree !scopes_tree;
       compile asts;
       exit 0
     with

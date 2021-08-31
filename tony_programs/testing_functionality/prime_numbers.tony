@@ -34,7 +34,6 @@ def main ():
 	int limit, number, counter
 
 	my_var := 0
-	puti(my_var) %should output 0
 
 	puts("Limit: ")
 	limit := geti()
@@ -55,7 +54,6 @@ def main ():
 		end
 	end
 
-	puti(my_var) %should output 5
 
 	puts("\nTotal: ")  puti(counter)  puts("\n")
 

@@ -23,8 +23,6 @@ type scope = {
   mutable sco_entries : entry list;
   mutable sco_negofs  : int;
   return_value        : typ;
-  (*outer_scope_vars    : Llvm.lltype option;*)
-  (*current_function    : Llvm.llvalue option;*)
   fun_name            : string option
 }
 
@@ -44,8 +42,6 @@ and function_info = {
   mutable function_initquad  : int;
   mutable function_llvalue   : Llvm.llvalue option;
   mutable outer_scope_list   : variable_info list;
-  (*mutable outer_scope_vars   : Llvm.lltype option;
-    mutable vars_length        : int*)
 }
 
 and parameter_info = {
@@ -136,8 +132,6 @@ let the_outer_scope = {
   sco_entries = [];
   sco_negofs = start_negative_offset;
   return_value = Null;
-  (*outer_scope_vars = None;*)
-  (*current_function = None;*)
   fun_name = None
 }
 
@@ -200,7 +194,6 @@ let get_current_vars_list () =
 
 (*for us a scope is a function... useful to keep return value*)
 let openScope rv nm =
-  (*let (outer_scope_vars, _) = get_current_vars context in*)
   let scope = string_of_int !currentScope.sco_nesting in
   let sco = {
     sco_parent = Some !currentScope;
@@ -208,11 +201,8 @@ let openScope rv nm =
     sco_entries = [];
     sco_negofs = start_negative_offset;
     return_value = rv;
-    (*outer_scope_vars = outer_scope_vars;*)
-    (*current_function = fu;*)
     fun_name = Some nm
   } in
-  (*(Printf.eprintf "%d\n" (sco.sco_nesting) );*)
   currentScope := sco
 
 let closeScope mode =
@@ -260,7 +250,6 @@ let newEntry id inf err =
     } in
     H.add !tab id e;
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
-    (*)(Printf.eprintf "%s %d\n" (id_name id) (e.entry_scope.sco_nesting) );*)
     e
   with Failure_NewEntry e ->
     error "duplicate identifier '%a'" pretty_id id;
@@ -315,7 +304,6 @@ let newFunction id err =
         error "duplicate identifier '%a'" pretty_id id;
         raise Exit
   with Not_found ->
-    (*let (outer_scope_vars, vars_length) = get_current_vars context in*)
     let inf = {
       function_isForward = false;
       function_paramlist = [];
@@ -352,7 +340,6 @@ let newParameter err f mode typ v id =
                 if not (equalType inf.parameter_type typ) then
                   error "Parameter type mismatch in redeclaration \
                          of function %a" pretty_id f.entry_id
-                (*Printf.eprintf "%s, %s\n" (Llvm.string_of_lltype (Llvm.type_of inf.parameter_value)) (Llvm.string_of_lltype (Llvm.type_of v))*)
                 else if inf.parameter_mode != mode then
                   error "Parameter passing mode mismatch in redeclaration \
                          of function %a" pretty_id f.entry_id
@@ -360,7 +347,7 @@ let newParameter err f mode typ v id =
                   error "Parameter name mismatch in redeclaration \
                          of function %a" pretty_id f.entry_id
                   else
-                  H.add !tab id p; (*why add again? It must have been added at declare fun.*)
+                  H.add !tab id p;
                 p
               | _ ->
                 error "I found a parameter that is not a parameter!";

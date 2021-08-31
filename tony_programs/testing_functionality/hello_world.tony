@@ -1,6 +1,7 @@
 def hello ():
 
   int a
+  skip
   puts("Hello world!\n")
 
 end

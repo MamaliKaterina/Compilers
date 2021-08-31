@@ -1,0 +1,47 @@
+def array_passing():
+
+  def ref_check(int[] array1; ref int[] array2):
+
+    int[] new_array
+
+    array1[0] := 42
+    array2[0] := 42
+
+    new_array := new int[10]
+    new_array[0] := 17
+
+    array1 := new_array %changes the local var
+    array2 := new_array %changes the var in the main program too
+
+  end
+
+
+  int[] array1, array2
+
+
+  %checking array reference semantics
+  array1 := new int [10]
+  puti(array1[0])
+  array1[0] := 10
+  puti(array1[0])
+  putc('\n')
+
+  array2 := array1 %not copied, they point at the same array in memory
+  array2[0] := 20
+  puti(array1[0])
+  putc('\n')
+
+
+  %checking by val and by ref for arrays
+  puti(array1[0])           %20
+  putc('\n')
+  puti(array2[0])           %20
+  putc('\n')
+  ref_check(array1, array2)
+  puti(array1[0])           %42
+  putc('\n')
+  puti(array2[0])           %17
+  putc('\n')
+
+
+end

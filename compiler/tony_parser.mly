@@ -63,17 +63,6 @@
 %left T_plus T_minus
 %left T_times T_div T_mod
 %nonassoc NT_plus NT_minus
-/*
-%left T_or
-%left T_and
-%nonassoc T_not
-%nonassoc lgop
-%right T_cons
-%left op
-%left T_plus T_minus
-%left T_times T_div T_mod
-%nonassoc NT_plus NT_minus*/
-
 
 %start program
 %type <Helping_types.ast_func_def> program
@@ -100,8 +89,6 @@
 %type <ast_expr list> other_expr
 %type <ast_atom> atom
 %type <ast_expr> expr
-/*%type <operator> oper
-%type <lg_operator> lg_oper*/
 
 %%
 
@@ -207,7 +194,3 @@ expr : atom	{ E_atom $1 }
 	 | expr T_cons expr	{ E_cons ($1, $3, (Parsing.rhs_start_pos 2).pos_lnum) }
 	 | T_head T_lbracket expr T_rbracket	{ E_head ($3, (Parsing.rhs_start_pos 1).pos_lnum) }
 	 | T_tail T_lbracket expr T_rbracket	{ E_tail ($3, (Parsing.rhs_start_pos 1).pos_lnum) }
-
-/*oper : T_plus { O_plus } | T_minus { O_minus } | T_times { O_times } | T_div { O_div } | T_mod { O_mod }
-
-lg_oper : T_eq { LO_eq } | T_dif { LO_dif } | T_less { LO_less } | T_greater { LO_greater } | T_less_eq { LO_less_eq } | T_greater_eq { LO_greater_eq }*/

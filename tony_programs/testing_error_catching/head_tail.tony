@@ -1,0 +1,19 @@
+def head_tail_functionality():
+
+  list[char] a, b
+
+  a := nil
+  b := 'k' # 'b' # nil
+
+  puts("head(b): ")
+  putc(head(b))
+  putc('\n')
+
+  b := tail(b)
+
+  %putc(head(nil))      %sem error
+
+  puts("We call tail on a nil list creating a segfault:\n")
+  a := tail(a) %segfault
+
+end

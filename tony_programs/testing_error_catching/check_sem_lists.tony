@@ -1,0 +1,20 @@
+def check_llvm():
+
+	list[int] a, v
+	list[list[int]] h
+	list[list[list[int]]] n
+
+  v := nil
+  h := v # nil 					%same as nil # nil
+  h := nil # h
+
+	puts("We insert an undefined list variable in another list. Will cause segfault:\n")
+	h := a # nil 						%compiler cannot know a is undefined, will create segfault
+	puti(head(head(h)))
+
+	%h := v # v 					  %sem error, v has different type from h
+	%n := (h # nil) # n		  %sem error, (h#nil) same type as n, cannot be an element in it
+
+
+
+end
