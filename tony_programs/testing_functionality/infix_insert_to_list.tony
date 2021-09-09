@@ -1,0 +1,15 @@
+def insert_to_list():
+
+  list[list[list[int]]] n, m
+
+  n := (nil # nil) # nil
+  m := nil # nil # nil
+
+  puts("nil?(head(nil # nil # nil)): ")
+  putb(nil?(head(m)))
+
+  puts("nil?(head((nil # nil) # nil)): ")
+  putb(nil?(head(n)))
+
+
+end

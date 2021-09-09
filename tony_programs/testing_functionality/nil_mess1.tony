@@ -1,0 +1,51 @@
+def main():   % no "err" should be printed!
+
+  def list[list[int][]] f():
+    return nil
+  end
+
+  def list[list[int][]] g(list[list[int][]] initial):
+    list[list[int][]] y
+    if nil?(nil):
+      y := nil
+    else:
+      puts("err1\n")
+    end
+    return y
+  end
+
+  def list[list[list[int][]]] h(list[list[int][]] initial):
+    return initial # nil # nil
+  end
+
+  list[list[list[int][]]] x
+
+  x := f() # nil
+  if not nil?(head(x)):
+    puts("err2\n")
+  end
+
+  if not nil?(g(nil)):
+    puts("err3\n")
+  end
+
+  x := h(head(x))
+  if nil?(x):
+    puts("err4\n")
+  end
+
+  if not nil?(head(x)):
+    puts("err5\n")
+  end
+
+  if nil?(tail(x)):
+    puts("err6\n")
+  end
+
+  if not nil?(head(tail(x))):
+    puts("err7\n")
+  end
+
+  puts("If any \"err\" above, then WRONG! If you do not see this message, then also WRONG!\n")
+
+end

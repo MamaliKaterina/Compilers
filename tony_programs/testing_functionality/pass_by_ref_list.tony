@@ -1,0 +1,25 @@
+def list_passing():
+
+  def initialize (ref list[int] u):
+    u := 56 # nil
+  end
+
+  def initialize2 (list[int] u):
+    u := 56 # nil
+  end
+
+  list[int] a
+
+  a := nil
+
+	%for lists, we cannot change the values inside a list ???
+	puts("Call by val and insert an element.\n nil?(a): ")
+	initialize2(a)
+	putb(nil?(a))
+
+  %pass by ref check
+  puts("Call by ref and insert an element.\n nil?(a): ")
+	initialize(a)
+	putb(nil?(a))
+
+end

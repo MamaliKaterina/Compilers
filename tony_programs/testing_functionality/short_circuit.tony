@@ -1,0 +1,19 @@
+def short_circuit():
+  %won't work when optimizer is on
+
+  bool b
+  list[bool] bl
+
+  bl := nil % head(bl) is invalid, should cause segfault(?) if excecuted
+
+  b := true
+  if (b or head(bl)) = true:
+    puts("Short Circuit for 'or' works!!!\n")
+  end
+
+  b := false
+  if (b and head(bl)) <> true:
+    puts("Short Circuit for 'and' works!!!\n")
+  end
+
+end

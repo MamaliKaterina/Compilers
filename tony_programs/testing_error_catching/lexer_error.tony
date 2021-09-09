@@ -1,0 +1,63 @@
+def main ():
+
+  %int decl
+  %char =p
+  int oct
+  char weird_char
+  char[] big_string
+  int[] array1, array2
+  list[int] l1, l2
+  list[bool] bl
+  bool b
+
+  def int myfun():
+
+    int oct
+
+    %puti(array1[0])
+    putc('\n')
+    %puti(oct) %segfault
+
+    %AND it doesn't return anything (segfault) but the compiler cannot now that in all cases
+    return 0
+
+  end
+
+
+  oct := 00200
+  puti(oct)
+  putc('\n')
+
+  weird_char := '\x1d'
+  putc(weird_char)
+  putc('\n')
+
+  %should this work?
+  big_string := "Uncomment to check for catching errors.\
+                  Should this work, string over a line long.\n"
+  puts(big_string)
+  puti(strlen(big_string))
+  putc('\n')
+
+
+  %myfun()
+  oct := myfun()
+
+  %checking mod and div
+  oct := 5 mod 2
+  puti(oct)
+  putc('\n')
+  oct := 5 / 2
+  puti(oct)
+  putc('\n')
+
+  %priority
+  if not 3--2 <= 5*-2 or head(-2#nil) <> -2 and not true or false:
+    puts("Priority is valid.\n")
+  end
+
+  %this is wrong!!! Other ways to catch it?
+  %"Hello" := "Hi"
+
+
+end

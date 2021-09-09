@@ -2,14 +2,14 @@ open Format
 open Identifier
 open Helping_types
 open Tony_symbol
-open Tony_sem
+open Tony_llvm
 
 
 let main =
   let lexbuf = Lexing.from_channel stdin in
     try
       let asts = Tony_parser.program Tony_lexer.lexer lexbuf in
-        sem asts;
+        compile asts;
     	  exit 0
     with
 	  | Parsing.Parse_error ->

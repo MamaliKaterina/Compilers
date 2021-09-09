@@ -1,12 +1,3 @@
-(*type helping_type =
-	| Empty
-	| M_int of int
-	| M_char of char
-	| M_bool of bool
-	| M_array of helping_type array ref
-	| M_list of helping_type list ref
-  | M_name of string
-*)
 type typ = Null | TY_int | TY_bool| TY_char | TY_array of typ | TY_list of typ
 type paramPas = BY_val | BY_ref
 type operator = O_plus | O_minus | O_times | O_div | O_mod
@@ -71,42 +62,7 @@ and ast_def =
   | F_decl of ast_func_decl
   | V_def of ast_var_def
 
-(*let equal v1 v2 =
-	match v1, v2 with
-	| (M_int(n1), M_int(n2))   -> M_bool (n1 = n2)
-	| (M_char(c1), M_char(c2)) -> M_bool (c1 = c2)
-	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 = b2)
 
-let not_equal v1 v2 =
-	match v1, v2 with
-	| (M_int(n1), M_int(n2))   -> M_bool (n1 <> n2)
-	| (M_char(c1), M_char(c2)) -> M_bool (c1 <> c2)
-	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 <> b2)
-
-let less v1 v2 =
-	match v1, v2 with
-	| (M_int(n1), M_int(n2))   -> M_bool (n1 < n2)
-	| (M_char(c1), M_char(c2)) -> M_bool (c1 < c2)
-	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 < b2)
-
-let greater v1 v2 =
-	match v1, v2 with
-	| (M_int(n1), M_int(n2))   -> M_bool (n1 > n2)
-	| (M_char(c1), M_char(c2)) -> M_bool (c1 > c2)
-	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 > b2)
-
-let less_eq v1 v2 =
-	match v1, v2 with
-	| (M_int(n1), M_int(n2))   -> M_bool (n1 <= n2)
-	| (M_char(c1), M_char(c2)) -> M_bool (c1 <= c2)
-	| (M_bool(b1), M_bool(b2)) -> M_bool (b1 <= b2)
-
-let greater_eq v1 v2 =
-	match v1, v2 with
-	| (M_int(n1), M_int(n2))   -> M_bool (n1 >= n2)
-	| (M_char(c1), M_char(c2)) -> M_bool (c1 >= c2)
-  | (M_bool(b1), M_bool(b2)) -> M_bool (b1 >= b2)
-*)
 let op_as_string op =
   match op with
   | O_plus  -> "+"
@@ -138,6 +94,7 @@ let rec print_typ t =
 	| TY_array (a) -> Printf.eprintf "TY_array of "; print_typ a
   | TY_list (l)	 -> Printf.eprintf "TY_list of "; print_typ l
 
+
 let rec sizeOfType t =
   match t with
   | TY_int     -> 2
@@ -149,3 +106,14 @@ let rec sizeOfType t =
 
 let equalType t1 t2 =
   t1 = t2
+
+let rec equal_typs t1 t2 =
+  match t1, t2 with
+  | (TY_int, TY_int) -> true
+  | (TY_char, TY_char) -> true
+  | (TY_bool, TY_bool) -> true
+  | (TY_array(a1), TY_array(a2)) -> equal_typs a1 a2
+  | (TY_list(Null), TY_list(_)) -> true
+  | (TY_list(_), TY_list(Null)) -> true
+  | (TY_list(l1), TY_list(l2)) -> equal_typs l1 l2
+  | _ -> false

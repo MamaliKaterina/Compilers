@@ -1,0 +1,63 @@
+#!/bin/bash
+
+MYLANG=tony
+MYCOMP=Main.native
+LIB=libtony.a
+OPTS="-Oz"
+
+name="$1"
+OPT=false
+F=false
+I=false
+
+case $2 in
+  "-O") OPT=true;;
+  "-f") F=true;;
+  "-i") I=true;;
+esac
+
+case $3 in
+  "-O") OPT=true;;
+  "-f") F=true;;
+  "-i") I=true;;
+esac
+
+case $4 in
+  "-O") OPT=true;;
+  "-f") F=true;;
+  "-i") I=true;;
+esac
+
+n=${name%.$MYLANG}
+n=${n##*/}
+llvmIR_name="$n".ll
+assembly_name="$n".s
+output_name="$n".out
+
+if $F; then
+  ./$MYCOMP
+  if $OPT; then
+    opt a.ll $OPTS -S -o a.ll
+  fi
+  llc a.ll -o "-"
+  rm a.ll
+else if $I; then
+  if $OPT; then
+    ./$MYCOMP
+    opt a.ll $OPTS -f -S
+    rm a.ll
+  else
+    ./$MYCOMP
+    cat a.ll
+    rm a.ll
+  fi
+else
+  ./$MYCOMP < $1
+  mv a.ll $llvmIR_name
+  if $OPT; then
+    opt $OPTS $llvmIR_name -S -o $llvmIR_name
+  fi
+  llc $llvmIR_name -o $assembly_name
+  clang -o $output_name $assembly_name $LIB -lgc 2> /dev/null
+fi
+fi
