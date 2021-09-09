@@ -5,7 +5,6 @@ open Tony_symbol
 open Tony_sem
 open Tony_llvm
 
-
 let main =
   let lexbuf = Lexing.from_channel stdin in
     try

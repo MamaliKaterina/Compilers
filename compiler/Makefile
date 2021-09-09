@@ -5,7 +5,7 @@ LLVMLDFLAGS=-L`$(LLVMCONFIG) --libdir`
 LLVMPACKAGES=llvm,llvm.analysis,llvm.all_backends,llvm.scalar_opts
 
 OCAMLBUILD=ocamlbuild
-OCAMLBUILDFLAGS=-pkgs $(LLVMPACKAGES) -lflags -cclib,$(LLVMLDFLAGS) -quiet
+OCAMLBUILDFLAGS=-pkgs $(LLVMPACKAGES) -lflags -cclib,$(LLVMLDFLAGS) -cflags -w,-A -quiet
 
 default: Main.native
 
@@ -17,5 +17,5 @@ Main.byte: FORCE
 
 clean:
 	$(OCAMLBUILD) -clean
-	$(RM) a.ll a.s a.out
+	$(RM) *.ll *.s *.out
 	$(RM) *~

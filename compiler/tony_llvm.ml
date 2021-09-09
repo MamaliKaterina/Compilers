@@ -331,9 +331,6 @@ let compile_formal info f fu offset index formal =
           let param_llvalue = Llvm.param fu (index+offset+i) in
           Llvm.set_value_name id param_llvalue;
           let var_llvalue = Llvm.build_malloc ty "malloc_var" info.builder in
-          (*let mallocsize = Llvm.size_of ty in
-            let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] id info.builder in
-            let var_llvalue = Llvm.build_bitcast gccall (Llvm.pointer_type ty) (id^"pointer") info.builder in*)
           ignore (Llvm.build_store param_llvalue var_llvalue info.builder);
           ignore (newParameter true f PASS_BY_VALUE t (Some var_llvalue) new_id)
         ) in List.iteri callnewParam slist
@@ -457,9 +454,6 @@ and compile_var_def info ast =
     let callnewParam id = (
       let new_id = id_make id in
       let v = Llvm.build_malloc ty "malloc_var" info.builder in
-      (*let mallocsize = Llvm.size_of ty in
-        let gccall = Llvm.build_call info.gc_malloc [| mallocsize |] id info.builder in
-      let v = Llvm.build_bitcast gccall (Llvm.pointer_type ty) (id^"pointer") info.builder in*)
       ignore ( newVariable true t (Some v) new_id )
     ) in
     List.iter callnewParam s_list
@@ -512,23 +506,40 @@ and compile_expr info ast =
     let t1 = compile_expr info e1
     and t2 = compile_expr info e2 in (
       match ao with
-      | And -> Llvm.build_and t1 t2 "andtmp" info.builder
-      | Or  -> (*
+      | And -> (
+          (*Short-Circuit*)
+          let cond = Llvm.build_icmp Llvm.Icmp.Ne t1 (info.c1 1) "if_cond" info.builder in
+          let bb = Llvm.insertion_block info.builder in
+          let f = Llvm.block_parent bb in
+          let then_bb = Llvm.append_block info.context "then" f in
+          let else_bb = Llvm.append_block info.context "else" f in
+          let after_bb = Llvm.append_block info.context "after" f in
+          ignore (Llvm.build_cond_br cond then_bb else_bb info.builder);
+          Llvm.position_at_end then_bb info.builder;
+          ignore (Llvm.build_br after_bb info.builder);
+          Llvm.position_at_end else_bb info.builder;
+          let and_var = Llvm.build_and t1 t2 "andtmp" info.builder in
+          ignore (Llvm.build_br after_bb info.builder);
+          Llvm.position_at_end after_bb info.builder;
+          Llvm.build_phi [ (info.c1 0, then_bb); (and_var, else_bb) ] "phi_node" info.builder
+        )
+      | Or  -> (
+        (*Short-Circuit*)
         let cond = Llvm.build_icmp Llvm.Icmp.Ne t1 (info.c1 0) "if_cond" info.builder in
         let bb = Llvm.insertion_block info.builder in
         let f = Llvm.block_parent bb in
         let then_bb = Llvm.append_block info.context "then" f in
-        let else_if_bb = Llvm.append_block info.context "else_if" f in
         let else_bb = Llvm.append_block info.context "else" f in
+        let after_bb = Llvm.append_block info.context "after" f in
         ignore (Llvm.build_cond_br cond then_bb else_bb info.builder);
         Llvm.position_at_end then_bb info.builder;
-        Llvm.build_or (info) ;
         ignore (Llvm.build_br after_bb info.builder);
         Llvm.position_at_end else_bb info.builder;
-        compile_elsif_stmt info else_bb after_bb elsif els;
-        Llvm.position_at_end after_bb info.builder
-        *)
-        Llvm.build_or t1 t2 "ortmp" info.builder
+        let or_var = Llvm.build_or t1 t2 "ortmp" info.builder in
+        ignore (Llvm.build_br after_bb info.builder);
+        Llvm.position_at_end after_bb info.builder;
+        Llvm.build_phi [ (info.c1 1, then_bb); (or_var, else_bb) ] "phi_node" info.builder
+        )
     )
   | E_new (a, e, line) ->
     let t = compile_expr info e in
@@ -961,8 +972,6 @@ and compile_func ast =
     closeScope false;
     (* Verify *)
     Llvm_analysis.assert_valid_module the_module;
-    (* Optimize*)
-    (*ignore (Llvm.PassManager.run_module the_module pm);*)
     (* Print out the IR *)
     Llvm.print_module "a.ll" the_module
     end

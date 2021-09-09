@@ -10,10 +10,12 @@ do
   echo "Press enter to check next program."
   read -n1 key
   echo "Compiling test program: ./do.sh ${test_program}"
-  ./do.sh $test_program
+  ./tony $test_program
   if [ $? -eq 0 ]; then
-    echo "Running test program: ./a.out"
-    ./a.out
+    name=${test_program%.tony}
+    name=${name##*/} 
+    echo "Running test program: ./$name.out"
+    ./$name.out
   fi
   echo "---------------------------------------------------------------------"
   echo ""
