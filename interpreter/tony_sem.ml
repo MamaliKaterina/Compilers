@@ -123,6 +123,7 @@ and sem_expr ast =
      | _          -> error "operator 'nil?' expected operand of type list";
        raise (TypeError line) )
   | E_cons (e1, e2, line)       -> let v1 = sem_expr e1
+<<<<<<< HEAD
     and v2 = sem_expr e2 in
     (match v2 with
      | TY_list(v) -> if v <> v1 && v <> Null then
@@ -132,6 +133,17 @@ and sem_expr ast =
        else v2
      | _          -> error "operator '#' expected a valid type and a list as operands";
        raise (TypeError line) )
+=======
+                                   and v2 = sem_expr e2 in
+                                   (match v2 with
+                                    | TY_list(v) -> if v <> v1 && v <> Null then
+                                                      (error "type of list of right operand of operator '#' \
+                                                       must be either of same type as left operand or empty list";
+                                                       raise (TypeError line))
+                                                    else v2
+                                    | _          -> error "operator '#' expected a valid type and a list as operands";
+                                                     raise (TypeError line) )
+>>>>>>> master
   | E_head (e, line)            -> let v = sem_expr e in
     (match v with
      | TY_list(l) -> l
@@ -148,6 +160,7 @@ and check_param exs pars fname line =
   match exs, pars with
   | ([], [])       -> ()
   | (e::te, p::tp) -> let t = sem_expr e in
+<<<<<<< HEAD
     (match p.entry_info with
      | ENTRY_parameter(pi) -> if pi.parameter_type <> t then
          (match pi.parameter_type, t with
@@ -165,12 +178,32 @@ and check_param exs pars fname line =
             raise (TypeError line) )
        else check_param te tp fname line
      | _                   -> raise UnknownError )
+=======
+                      (match p.entry_info with
+                       | ENTRY_parameter(pi) -> if pi.parameter_type <> t then
+                                                (match pi.parameter_type, t with
+                                                 | TY_list(sth), TY_list Null -> ()
+                                                 | _                          -> (error "parameter type in call of function \
+                                                                                         '%s' inconsistent with type \
+                                                                                         in function definition" fname;
+                                                                                  raise (TypeError line)) )
+                                                else if pi.parameter_mode = PASS_BY_REFERENCE then
+                                                  (match e with
+                                                   | E_atom(A_var(v, l))      -> ()
+                                                   | E_atom(A_atom(a, ex, l)) -> ()
+                                                   | _                        -> error "parameter passed by reference has to be \
+                                                                                        an lvalue in call of function '%s'" fname;
+                                                                                 raise (TypeError line) )
+                                                else check_param te tp fname line
+                       | _                   -> raise UnknownError )
+>>>>>>> master
   | _              -> error "fewer or more parameters than expected in call of function '%s'" fname;
     raise (TypeError line)
 
 and sem_call c =
   match c with
   | C_call(nm, exprs, line) -> let id = id_make nm in
+<<<<<<< HEAD
     let e = lookupEntry id LOOKUP_ALL_SCOPES true in
     (match e.entry_info with
      | ENTRY_function(f) -> if not (f.function_isForward) then
@@ -182,6 +215,19 @@ and sem_call c =
              raise (TypeError line))
      | _ -> error "identifier '%s' is not a function" nm;
        raise (TypeError line) )
+=======
+                               let e = lookupEntry id LOOKUP_ALL_SCOPES true in
+                               (match e.entry_info with
+                                | ENTRY_function(f) -> if not (f.function_isForward) then
+                                                       begin
+                                                         check_param exprs f.function_paramlist nm line;
+                                                         f.function_result
+                                                       end
+                                                       else (error "function '%s' is not yet defined" nm;
+                                                             raise (TypeError line))
+                                | _ -> error "identifier '%s' is not a function" nm;
+                                       raise (TypeError line) )
+>>>>>>> master
 
 and sem_atom ast =
   (*must check: -the atoms are well-defined
@@ -197,17 +243,26 @@ and sem_atom ast =
        raise (TypeError line) )
   | A_string_const str  -> TY_array TY_char
   | A_atom (a, e, line) -> let v = sem_atom a
+<<<<<<< HEAD
     and n = sem_expr e in
     (match v, n with
      | TY_array(t), TY_int -> t
      | _                   -> error "identifier is not an array"; (*print_typ v; print_typ //only for debugging*)
        raise (TypeError line) )
+=======
+                           and n = sem_expr e in
+                           (match v, n with
+                            | TY_array(t), TY_int -> t
+                            | _                   -> error "identifier is not an array"; (*print_typ v; print_typ //only for debugging*)
+                                                     raise (TypeError line) )
+>>>>>>> master
   | A_call c            -> sem_call c
 
 and sem_simple ast =
   match ast with
   | S_skip ()             -> ()
   | S_assign (a, e, line) -> let x = sem_atom a
+<<<<<<< HEAD
     and y = sem_expr e in (*it will return the typ of y*)
     if x <> y then
       (match x, y with
@@ -216,6 +271,16 @@ and sem_simple ast =
                                         (*Printf.eprintf "%d " line; print_typ x; print_typ y;//only for debugging*)
                                         raise (TypeError line)) )
   (*else Printf.eprintf "%d " line; print_typ x; print_typ y;//else statement only for debugging*)
+=======
+                             and y = sem_expr e in (*it will return the typ of y*)
+                             if x <> y then
+                               (match x, y with
+                               | TY_list(sth), TY_list Null -> ()
+                               | _                          -> (error "lvalue and rvalue in assignment are not of the same type";
+                                                        (*Printf.eprintf "%d " line; print_typ x; print_typ y;//only for debugging*)
+                                                                raise (TypeError line)) )
+                            (*else Printf.eprintf "%d " line; print_typ x; print_typ y;//else statement only for debugging*)
+>>>>>>> master
   | S_call c              -> let v = sem_call c	in
     if v <> Null then raise UnknownError
 

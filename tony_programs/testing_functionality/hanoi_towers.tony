@@ -3,7 +3,11 @@ def solve ():
   def hanoi (int rings; char[] source, target, auxiliary):
 
     def move (char[] source, target):
+<<<<<<< HEAD:tony_programs/testing_functionality/hanoi_towers.tony
       puts("Moving from ")  puts(source)  puts(" to ")  puts(target)  puts(".\n")
+=======
+     puts("Moving from ") puts(source)
+>>>>>>> master:tony_programs/hanoi_towers.tony
     end
 
     if rings >= 1:
@@ -15,7 +19,13 @@ def solve ():
 
   int NumberOfRings
 
+<<<<<<< HEAD:tony_programs/testing_functionality/hanoi_towers.tony
   puts("Rings: ")
   NumberOfRings := geti()
   hanoi(NumberOfRings, "left", "right", "middle")
+=======
+puts("Rings: ")
+NumberOfRings := geti()
+hanoi(NumberOfRings, "left", "right", "middle")
+>>>>>>> master:tony_programs/hanoi_towers.tony
 end
